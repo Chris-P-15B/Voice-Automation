@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# v1.1 - written by Chris Perkins in 2018
+# v1.2 - written by Chris Perkins in 2018
 # Finds & fixes Line Text Label's not in AB's current standard
 
 # v1.2 - fixed CSV output to UTF-8
@@ -352,6 +352,6 @@ if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)
     # Initialise TKinter GUI objects
     root = tk.Tk()
-    root.title("Line Text Label Checker v1.1")
+    root.title("Line Text Label Checker v1.2")
     LineTextCheckFrame(root)
     root.mainloop()

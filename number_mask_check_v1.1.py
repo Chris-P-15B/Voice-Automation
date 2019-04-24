@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# v1.0 - written by Chris Perkins in 2019
+# v1.1 - written by Chris Perkins in 2019
 # Finds & fixes primary DN's in specified range(s) with an External Phone Number Masks that doesn't match the approved list
 
 # v1.1 - fixed CSV output to UTF-8
@@ -405,6 +405,6 @@ if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)
     # Initialise TKinter GUI objects
     root = tk.Tk()
-    root.title("External Number Mask Checker v1.0")
+    root.title("External Number Mask Checker v1.1")
     GUIFrame(root)
     root.mainloop()
