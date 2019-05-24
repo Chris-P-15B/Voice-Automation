@@ -2,7 +2,7 @@
 # v1.1 - written by Chris Perkins in 2019
 # Finds & fixes primary DN's in specified range(s) with an External Phone Number Masks that doesn't match the approved list
 
-# v1.1 - fixed CSV output to UTF-8
+# v1.1 - fixed CSV output to UTF-8, fixed E.164 mask handling
 # v1.0 – initial release
 
 # Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
@@ -325,7 +325,7 @@ class GUIFrame(tk.Frame):
                         # Check replacement mask has only valid characters
                         is_valid = True
                         for mask_char in row[5]:
-                            if mask_char not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'X']:
+                            if mask_char not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'X', '+']:
                                 self.list_box.insert(tk.END, row[0] + ', ' + row[1] + ', ' + row[2] + ', ' + row[3] + ', ' + row[4] + ', ' + row[5] + ', ' + row[6])
                                 result_list.append(row)
                                 is_valid = False
