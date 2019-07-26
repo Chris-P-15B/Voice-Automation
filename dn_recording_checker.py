@@ -196,9 +196,9 @@ class GUIFrame(tk.Frame):
                 f"FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid INNER JOIN numplan n " \
                 f"ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid " \
                 f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=254 " \
-                f"AND n.dnorpattern='{dn}') AND (d.tkstatus_builtinbridge!=1 OR dpd.tkstatus_callinfoprivate!=0 " \
-                f"OR {axl_json['subquery']} OR dnmap.fkrecordingprofile IS NULL OR dnmap.tkpreferredmediasource!=2 " \
-                f"OR rd.tkrecordingflag!=1) ORDER BY d.name"
+                f"AND n.dnorpattern='{dn}') AND (dpd.tkstatus_callinfoprivate!=0 OR {axl_json['subquery']} " \
+                f"OR dnmap.fkrecordingprofile IS NULL OR dnmap.tkpreferredmediasource!=2 OR rd.tkrecordingflag!=1) " \
+                f"ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
                     try:
