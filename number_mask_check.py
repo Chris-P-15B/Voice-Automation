@@ -113,7 +113,6 @@ class GUIFrame(tk.Frame):
         """Convert list to OrderedDict"""
         return [OrderedDict((element.tag, element.text) for element in row) for row in elements]
 
-
     def sql_query(self, service, sql_statement):
         """Execute SQL query via AXL and return results"""
         try:
