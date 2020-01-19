@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # (c) 2018 - 2019, Chris Perkins
+# Licence: BSD 3-Clause
+
 # For a list of DNs in a CSV file, find phones (tkclass=1) & device profiles (tkclass=254) where built-in
 # bridge isn’t on or privacy isn’t off, automatic call recording isn't enabled, recording profile doesn't
 # match & recording media source isn't phone preferred. Optionally output to another CSV file
@@ -37,7 +39,7 @@ class GUIFrame(tk.Frame):
     def __init__(self, parent):
         """Constructor checks parameters and initialise variables"""
         self.axl_input_filename = None
-        self.axl_password = ''
+        self.axl_password = ""
         self.csv_input_filename = None
         tk.Frame.__init__(self, parent)
         parent.geometry("320x480")
@@ -98,28 +100,28 @@ class GUIFrame(tk.Frame):
                 axl_json_data = json.load(f)
                 for axl_json in axl_json_data:
                     try:
-                        if not axl_json['fqdn']:
+                        if not axl_json["fqdn"]:
                             tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                         return
                     try:
-                        if not axl_json['username']:
+                        if not axl_json["username"]:
                             tk.messagebox.showerror(title="Error", message="Username must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="Username must be specified.")
                         return
                     try:
-                        if not axl_json['wsdl_file']:
+                        if not axl_json["wsdl_file"]:
                             tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                         return
                     try:
-                        if not axl_json['subquery']:
+                        if not axl_json["subquery"]:
                             tk.messagebox.showerror(title="Error", message="Subquery must be specified.")
                             return
                     except KeyError:
@@ -136,11 +138,11 @@ class GUIFrame(tk.Frame):
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
         session.verify = False
-        session.auth = HTTPBasicAuth(axl_json['username'], self.axl_password)
+        session.auth = HTTPBasicAuth(axl_json["username"], self.axl_password)
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json['wsdl_file'], transport=transport, plugins=[history])
+            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -160,30 +162,14 @@ class GUIFrame(tk.Frame):
                 f"OR rd.tkrecordingflag!=1) ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
-                    try:
-                        # Handle None results
-                        if row['name'] is None:
-                            d_name = ''
-                        else:
-                            d_name = row['name']
-                        if row['description'] is None:
-                            d_description = ''
-                        else:
-                            d_description = row['description']
-                        if row['dnorpattern'] is None:
-                            n_dnorpattern = ''
-                        else:
-                            n_dnorpattern = row['dnorpattern']
-                        if row['ndescription'] is None:
-                            n_description = ''
-                        else:
-                            n_description = row['ndescription']
-
-                        self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
-                        result_list.append(list(row.values()))
-                        cntr += 1
-                    except TypeError:
-                        continue
+                    # Handle None results
+                    d_name = row.get("name", "")
+                    d_description = row.get("description", "")
+                    n_dnorpattern = row.get("dnorpattern", "")
+                    n_description = row.get("ndescription", "")
+                    self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
+                    result_list.append(list(row.values()))
+                    cntr += 1
             except TypeError:
                 pass
             except Fault as thin_axl_error:
@@ -200,30 +186,14 @@ class GUIFrame(tk.Frame):
                 f"ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
-                    try:
-                        # Handle None results
-                        if row['name'] is None:
-                            d_name = ''
-                        else:
-                            d_name = row['name']
-                        if row['description'] is None:
-                            d_description = ''
-                        else:
-                            d_description = row['description']
-                        if row['dnorpattern'] is None:
-                            n_dnorpattern = ''
-                        else:
-                            n_dnorpattern = row['dnorpattern']
-                        if row['ndescription'] is None:
-                            n_description = ''
-                        else:
-                            n_description = row['ndescription']
-
-                        self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
-                        result_list.append(list(row.values()))
-                        cntr += 1
-                    except TypeError:
-                        continue
+                    # Handle None results
+                    d_name = row.get("name", "")
+                    d_description = row.get("description", "")
+                    n_dnorpattern = row.get("dnorpattern", "")
+                    n_description = row.get("ndescription", "")
+                    self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
+                    result_list.append(list(row.values()))
+                    cntr += 1
             except TypeError:
                 pass
             except Fault as thin_axl_error:
@@ -234,7 +204,7 @@ class GUIFrame(tk.Frame):
         # Output to CSV file if required
         try:
             if len(output_filename) != 0:
-                with open(output_filename, 'w', newline='') as csv_file:
+                with open(output_filename, "w", newline="") as csv_file:
                     writer = csv.writer(csv_file)
                     writer.writerows(result_list)
         except OSError:
@@ -249,28 +219,26 @@ class GUIFrame(tk.Frame):
             tk.messagebox.showerror(title="Error", message="No CSV file selected.")
             return
         # Parse input CSV file
-        dn_list = []
         try:
             with open(self.csv_input_filename, encoding="utf-8-sig") as f:
                 reader = csv.reader(f)
-                for row in reader:
-                    dn_list.append(row[0])
+                dn_list = [row[0] for row in reader]
         except FileNotFoundError:
             tk.messagebox.showerror(title="Error", message="Unable to open CSV file.")
             return
 
         output_string = self.output_csv_text.get()
         if len(output_string) == 0:
-            self.read_axl(dn_list, '')
+            self.read_axl(dn_list, "")
         else:
             self.read_axl(dn_list, output_string)
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.axl_input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("JSON files",
+        self.axl_input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
             "*.json"),("All files", "*.*")))
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show='*')
-        self.csv_input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("CSV files",
+        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
+        self.csv_input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("CSV files",
             "*.csv"),("All files", "*.*")))
 
 if __name__ == "__main__":
