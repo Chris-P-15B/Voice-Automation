@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # (c) 2017 - 2019, Chris Perkins
+# Licence: BSD 3-Clause
+
 # Takes CUCM Route Plan Report exported as CSV or uses AXL, parses the regexs for the dial plan to find
 # unused numbers in a given direct dial range. Number range to match against is defined in JSON format in dialplan.json.
 # Won't parse dial plan entries with * or # as they're invalid for a direct dial range
