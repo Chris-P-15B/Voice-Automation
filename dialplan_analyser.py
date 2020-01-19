@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # (c) 2017 - 2019, Chris Perkins
 # Takes CUCM Route Plan Report exported as CSV or uses AXL, parses the regexs for the dial plan to find
-# unused numbers in a given direct dial range. Number range to match against is defined in JSON format in dialplan.json
+# unused numbers in a given direct dial range. Number range to match against is defined in JSON format in dialplan.json.
 # Won't parse dial plan entries with * or # as they're invalid for a direct dial range
 
 # v1.5 - code tidying
@@ -48,9 +48,7 @@ class DirectoryNumbers:
             # For numbers with preceeding 0, conversion to int will strip, so prepend with 0 to match
             #  length of source string
             if len(num_str) < len(end_num):
-                pad_str = ''
-                for x in range(0, len(end_num) - len(num_str)):
-                    pad_str += '0'
+                pad_str = "0" * (len(end_num) - len(num_str))
                 num_str = pad_str + num_str
             self.number.append(num_str)
             self.is_used.append(False)
@@ -64,18 +62,18 @@ class GUIFrame(tk.Frame):
         self.numbers = []
         self.input_filename = None
         self.use_axl = False
-        self.axl_password = ''
+        self.axl_password = ""
 
         try:
             with open("dialplan.json") as f:
                 self.json_data = json.load(f)
                 for range_data in self.json_data:
                     try:
-                        if len(range_data['range_start']) != len(range_data['range_end']):
+                        if len(range_data["range_start"]) != len(range_data["range_end"]):
                             tk.messagebox.showerror(title="Error", message="The first and last numbers"
                                 " in range must be of equal length.")
                             sys.exit()
-                        elif int(range_data['range_start']) >= int(range_data['range_end']):
+                        elif int(range_data["range_start"]) >= int(range_data["range_end"]):
                             tk.messagebox.showerror(title="Error", message="The last number in range"
                                 " must be greater than the first.")
                             sys.exit()
@@ -84,16 +82,21 @@ class GUIFrame(tk.Frame):
                             " formatted.")
                         sys.exit()
                     try:
-                        if not range_data['description']:
+                        if not range_data["description"]:
                             tk.messagebox.showerror(title="Error", message="Description must be specified.")
                             sys.exit()
-                        # Uncomment to disallow DNs not in a partition
-                        #elif not range_data['partition']:
-                        #    tk.messagebox.showerror(title="Error", message="Partition must be specified.")
-                        #    sys.exit()
-                        self.range_descriptions.append(range_data['description'])
+                        self.range_descriptions.append(range_data["description"])
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="Description must be specified.")
+                        sys.exit()
+                    try:
+                        pass
+                        # Remove pass & uncomment to disallow DNs not in a partition
+                        #if not range_data["partition"]:
+                        #    tk.messagebox.showerror(title="Error", message="Partition must be specified.")
+                        #    sys.exit()
+                    except KeyError:
+                        tk.messagebox.showerror(title="Error", message="Partition must be specified.")
                         sys.exit()
         except FileNotFoundError:
             messagebox.showerror(title="Error", message="Unable to open JSON file.")
@@ -104,12 +107,12 @@ class GUIFrame(tk.Frame):
 
         self.range_descriptions = sorted(self.range_descriptions)
         for item in self.json_data:
-            if item['description'].upper() == self.range_descriptions[0].upper():
-                self.range_description = item['description']
-                self.range_start = int(item['range_start'])
-                self.range_end = int(item['range_end'])
-                self.range_partition = item['partition']
-                self.directory_numbers = DirectoryNumbers(item['range_start'], item['range_end'])
+            if item["description"].upper() == self.range_descriptions[0].upper():
+                self.range_description = item["description"]
+                self.range_start = int(item["range_start"])
+                self.range_end = int(item["range_end"])
+                self.range_partition = item.get("partition", "")
+                self.directory_numbers = DirectoryNumbers(item["range_start"], item["range_end"])
                 break
 
         tk.Frame.__init__(self, parent)
@@ -162,21 +165,21 @@ class GUIFrame(tk.Frame):
         for column in range(16):
             digits.append([])
         for char in pattern:
-            if char == '[':
+            if char == "[":
                 is_slice = True
-            elif char == '^' and is_slice == True:
+            elif char == "^" and is_slice == True:
                 is_negate = True
-            elif char == ']':
+            elif char == "]":
                 is_slice = False
                 if is_negate == True:
                     negate_slice = []
-                    for range_char in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+                    for range_char in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
                         if range_char not in digits[num_digits]:
                             negate_slice.append(range_char)
                     digits[num_digits] = negate_slice[:]
                     is_negate = False
                 num_digits += 1
-            elif char in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            elif char in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
                 if is_range == False:
                     digits[num_digits].append(char)
                     if is_slice == False:
@@ -185,12 +188,12 @@ class GUIFrame(tk.Frame):
                     for range_char in range(int(digits[num_digits][-1]) + 1, int(char) + 1):
                         digits[num_digits].append(str(range_char))
                     is_range = False
-            elif char == '-' and is_slice == True:
+            elif char == "-" and is_slice == True:
                 is_range = True
-            elif char == 'X':
-                digits[num_digits] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+            elif char == "X":
+                digits[num_digits] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 num_digits += 1
-            elif char == '*' or char == '#':
+            elif char == "*" or char == "#":
                 # Strings containing * or # can't be parsed as an integer so return empty list as also
                 # not a valid PSTN number
                 return []
@@ -200,10 +203,8 @@ class GUIFrame(tk.Frame):
 
         # Use itertools.product() to convert jagged list of digits to list of permutation strings
         #  >= range_start & <= range_end
-        for list in itertools.product(*digits2):
-            char_string = ''
-            for char in list:
-                char_string += str(char)
+        for plist in itertools.product(*digits2):
+            char_string = "".join([str(char) for char in plist])
             if char_string:
                 number = int(char_string)
                 if number >= range_start and number <= range_end:
@@ -240,21 +241,21 @@ class GUIFrame(tk.Frame):
                 axl_json_data = json.load(f)
                 for axl_json in axl_json_data:
                     try:
-                        if not axl_json['fqdn']:
+                        if not axl_json["fqdn"]:
                             tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                         return
                     try:
-                        if not axl_json['username']:
+                        if not axl_json["username"]:
                             tk.messagebox.showerror(title="Error", message="Username must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="Username must be specified.")
                         return
                     try:
-                        if not axl_json['wsdl_file']:
+                        if not axl_json["wsdl_file"]:
                             tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                             return
                     except KeyError:
@@ -273,11 +274,11 @@ class GUIFrame(tk.Frame):
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
         session.verify = False
-        session.auth = HTTPBasicAuth(axl_json['username'], self.axl_password)
+        session.auth = HTTPBasicAuth(axl_json["username"], self.axl_password)
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json['wsdl_file'], transport=transport, plugins=[history])
+            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -288,12 +289,9 @@ class GUIFrame(tk.Frame):
             for row in self.sql_query(service=axl, sql_statement=sql_statement):
                 # Ignore entries not in the correct partition and update directory_numbers with numbers
                 # found to be in use
-                if row['name'] is None:
-                    pname = ''
-                else:
-                    pname = row['name']
+                pname = row.get("name", "")
                 if pname.upper() == self.range_partition.upper():
-                    for char_string in self.parse_regex(row['dnorpattern'], self.range_start, self.range_end):
+                    for char_string in self.parse_regex(row["dnorpattern"], self.range_start, self.range_end):
                         raw_route_plan.append(char_string)
                         try:
                             dn_index = self.directory_numbers.number.index(char_string)
@@ -378,17 +376,17 @@ class GUIFrame(tk.Frame):
 
     def open_csv_file_dialog(self):
         """Dialogue to prompt for CSV file to open"""
-        self.input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("CSV files",
+        self.input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("CSV files",
             "*.csv"),("All files", "*.*")))
         self.use_axl = False
         self.axl_password = ""
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("JSON files",
+        self.input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
             "*.json"),("All files", "*.*")))
         self.use_axl = True
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show='*')
+        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
 
     def combobox_update(self, event):
         """Populate range variables when Combobox item selected"""
@@ -397,12 +395,12 @@ class GUIFrame(tk.Frame):
         self.entries_label_text.set("Dial Plan Entries Parsed: ")
         value = self.range_combobox.get()
         for item in self.json_data:
-            if item['description'].upper() == value.upper():
-                self.range_description = item['description']
-                self.range_start = int(item['range_start'])
-                self.range_end = int(item['range_end'])
-                self.range_partition = item['partition']
-                self.directory_numbers = DirectoryNumbers(item['range_start'], item['range_end'])
+            if item["description"].upper() == value.upper():
+                self.range_description = item["description"]
+                self.range_start = int(item["range_start"])
+                self.range_end = int(item["range_end"])
+                self.range_partition = item["partition"]
+                self.directory_numbers = DirectoryNumbers(item["range_start"], item["range_end"])
                 break
 
 if __name__ == "__main__":
