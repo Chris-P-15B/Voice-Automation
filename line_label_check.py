@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # (c) 2019, Chris Perkins
+# Licence: BSD 3-Clause
+
 # Finds & fixes Line Text Label's not in AB's current standard of Initial Last Name-Extension
 
 # v1.3 - code tidying
@@ -36,7 +38,7 @@ class GUIFrame(tk.Frame):
     def __init__(self, parent):
         """Constructor checks parameters and initialise variables"""
         self.axl_input_filename = None
-        self.axl_password = ''
+        self.axl_password = ""
         self.csv_input_filename = None
         tk.Frame.__init__(self, parent)
         parent.geometry("320x480")
@@ -108,21 +110,21 @@ class GUIFrame(tk.Frame):
                 axl_json_data = json.load(f)
                 for axl_json in axl_json_data:
                     try:
-                        if not axl_json['fqdn']:
+                        if not axl_json["fqdn"]:
                             tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                         return
                     try:
-                        if not axl_json['username']:
+                        if not axl_json["username"]:
                             tk.messagebox.showerror(title="Error", message="Username must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="Username must be specified.")
                         return
                     try:
-                        if not axl_json['wsdl_file']:
+                        if not axl_json["wsdl_file"]:
                             tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                             return
                     except KeyError:
@@ -139,11 +141,11 @@ class GUIFrame(tk.Frame):
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
         session.verify = False
-        session.auth = HTTPBasicAuth(axl_json['username'], self.axl_password)
+        session.auth = HTTPBasicAuth(axl_json["username"], self.axl_password)
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json['wsdl_file'], transport=transport, plugins=[history])
+            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -162,51 +164,32 @@ class GUIFrame(tk.Frame):
             for row in self.sql_query(service=axl, sql_statement=sql_statement):
                 try:
                     # Handle None results
-                    if row['pkid'] is None:
-                        dnmap_pkid = ''
-                    else:
-                        dnmap_pkid = row['pkid']
-                    if row['label'] is None:
-                        dnmap_label = ''
-                    else:
-                        dnmap_label = row['label']
-                    if row['display'] is None:
-                        dnmap_display = ''
-                    else:
-                        dnmap_display = row['display']
-                    if row['alertingname'] is None:
-                        n_alertingname = ''
-                    else:
-                        n_alertingname = row['alertingname']
-                    if row['dnorpattern'] is None:
-                        n_dnorpattern = ''
-                    else:
-                        n_dnorpattern = row['dnorpattern']
-                    if row['name'] is None:
-                        d_name = ''
-                    else:
-                        d_name = row['name']
-
-                    # First choice to generate Initial & Last Name is display name, then alerting name
-                    if n_dnorpattern not in dnmap_label:
-                        new_label = ''
-                        name_words = ''
-                        if dnmap_display:
-                            name_words = dnmap_display.split()
-                        elif n_alertingname:
-                            name_words = n_alertingname.split()
-                        if len(name_words) > 1:
-                            new_label = f"{name_words[0][0]} {name_words[-1]}-{n_dnorpattern}"
-                        elif len(name_words) == 1:
-                            new_label = f"{name_words[0]}-{n_dnorpattern}"
-                        new_label = new_label.replace("'", '')
-                        self.list_box.insert(tk.END, f"{d_name}, {n_dnorpattern}, {n_alertingname}, "
-                            f"{dnmap_display}, {dnmap_label}, {new_label}, {dnmap_pkid}")
-                        result_list.append([d_name, n_dnorpattern, n_alertingname, dnmap_display, dnmap_label,
-                            new_label, dnmap_pkid])
-                        cntr += 1
+                    dnmap_pkid = row["pkid"] if row["pkid"] else ""
+                    dnmap_label = row["label"] if row["label"] else ""
+                    dnmap_display = row["display"] if row["display"] else ""
+                    n_alertingname = row["alertingname"] if row["alertingname"] else ""
+                    n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
+                    d_name = row["name"] if row["name"] else ""
                 except TypeError:
                     continue
+                # First choice to generate Initial & Last Name is display name, then alerting name
+                if n_dnorpattern not in dnmap_label:
+                    new_label = ""
+                    name_words = ""
+                    if dnmap_display:
+                        name_words = dnmap_display.split()
+                    elif n_alertingname:
+                        name_words = n_alertingname.split()
+                    if len(name_words) > 1:
+                        new_label = f"{name_words[0][0]} {name_words[-1]}-{n_dnorpattern}"
+                    elif len(name_words) == 1:
+                        new_label = f"{name_words[0]}-{n_dnorpattern}"
+                    new_label = new_label.replace("'", "")
+                    self.list_box.insert(tk.END, f"{d_name}, {n_dnorpattern}, {n_alertingname}, "
+                        f"{dnmap_display}, {dnmap_label}, {new_label}, {dnmap_pkid}")
+                    result_list.append([d_name, n_dnorpattern, n_alertingname, dnmap_display, dnmap_label,
+                        new_label, dnmap_pkid])
+                    cntr += 1
         except TypeError:
             pass
         except Fault as thin_axl_error:
@@ -217,7 +200,7 @@ class GUIFrame(tk.Frame):
         # Output to CSV file if required
         try:
             if len(output_filename) != 0:
-                with open(output_filename, 'w', newline='', encoding="utf-8-sig") as csv_file:
+                with open(output_filename, "w", newline="", encoding="utf-8-sig") as csv_file:
                     writer = csv.writer(csv_file)
                     writer.writerows(result_list)
         except OSError:
@@ -232,21 +215,21 @@ class GUIFrame(tk.Frame):
                 axl_json_data = json.load(f)
                 for axl_json in axl_json_data:
                     try:
-                        if not axl_json['fqdn']:
+                        if not axl_json["fqdn"]:
                             tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                         return
                     try:
-                        if not axl_json['username']:
+                        if not axl_json["username"]:
                             tk.messagebox.showerror(title="Error", message="Username must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="Username must be specified.")
                         return
                     try:
-                        if not axl_json['wsdl_file']:
+                        if not axl_json["wsdl_file"]:
                             tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                             return
                     except KeyError:
@@ -263,11 +246,11 @@ class GUIFrame(tk.Frame):
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
         session.verify = False
-        session.auth = HTTPBasicAuth(axl_json['username'], self.axl_password)
+        session.auth = HTTPBasicAuth(axl_json["username"], self.axl_password)
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json['wsdl_file'], transport=transport, plugins=[history])
+            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -290,7 +273,7 @@ class GUIFrame(tk.Frame):
                     return
                 for row in reader:
                     try:
-                        row[5] = row[5].replace("'", '')
+                        row[5] = row[5].replace("'", "")
                         sql_statement = f"UPDATE devicenumplanmap SET label='{row[5]}' WHERE pkid='{row[6]}'"
                         num_results = self.sql_update(service=axl, sql_statement=sql_statement)
                         # List updates that failed
@@ -316,7 +299,7 @@ class GUIFrame(tk.Frame):
         # Output to CSV file if required
         try:
             if len(output_filename) != 0:
-                with open(output_filename, 'w', newline='', encoding="utf-8-sig") as csv_file:
+                with open(output_filename, "w", newline="", encoding="utf-8-sig") as csv_file:
                     writer = csv.writer(csv_file)
                     writer.writerows(result_list)
         except OSError:
@@ -330,7 +313,7 @@ class GUIFrame(tk.Frame):
 
         output_string = self.output_csv_text.get()
         if len(output_string) == 0:
-            self.read_axl('')
+            self.read_axl("")
         else:
             self.read_axl(output_string)
 
@@ -347,19 +330,19 @@ class GUIFrame(tk.Frame):
 
         output_string = self.output_csv_text.get()
         if len(output_string) == 0:
-            self.write_axl('')
+            self.write_axl("")
         else:
             self.write_axl(output_string)
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.axl_input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("JSON files",
+        self.axl_input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
             "*.json"),("All files", "*.*")))
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show='*')
+        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
 
     def open_csv_file_dialog(self):
         """Dialogue to prompt for CSV file to open"""
-        self.csv_input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("CSV files",
+        self.csv_input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("CSV files",
             "*.csv"),("All files", "*.*")))
 
 if __name__ == "__main__":

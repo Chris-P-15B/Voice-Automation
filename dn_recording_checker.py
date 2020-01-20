@@ -162,14 +162,17 @@ class GUIFrame(tk.Frame):
                 f"OR rd.tkrecordingflag!=1) ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
-                    # Handle None results
-                    d_name = row["name"] if row["name"] else ""
-                    d_description = row["description"] if row["description"] else ""
-                    n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
-                    n_description = row["ndescription"] if row["ndescription"] else ""
-                    self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
-                    result_list.append(list(row.values()))
-                    cntr += 1
+                    try:
+                        # Handle None results
+                        d_name = row["name"] if row["name"] else ""
+                        d_description = row["description"] if row["description"] else ""
+                        n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
+                        n_description = row["ndescription"] if row["ndescription"] else ""
+                        self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
+                        result_list.append(list(row.values()))
+                        cntr += 1
+                    except TypeError:
+                        continue
             except TypeError:
                 pass
             except Fault as thin_axl_error:
@@ -186,14 +189,17 @@ class GUIFrame(tk.Frame):
                 f"ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
-                    # Handle None results
-                    d_name = row["name"] if row["name"] else ""
-                    d_description = row["description"] if row["description"] else ""
-                    n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
-                    n_description = row["ndescription"] if row["ndescription"] else ""
-                    self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
-                    result_list.append(list(row.values()))
-                    cntr += 1
+                    try:
+                        # Handle None results
+                        d_name = row["name"] if row["name"] else ""
+                        d_description = row["description"] if row["description"] else ""
+                        n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
+                        n_description = row["ndescription"] if row["ndescription"] else ""
+                        self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
+                        result_list.append(list(row.values()))
+                        cntr += 1
+                    except TypeError:
+                        continue
             except TypeError:
                 pass
             except Fault as thin_axl_error:

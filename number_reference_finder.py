@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # (c) 2018 - 2019, Chris Perkins
+# Licence: BSD 3-Clause
+
 # Checks NumPlan for CFA, CFB, CFNA, CFNC, CFUR, AAR Destination Mask or Called Party Transformation
 # that reference a given number, SQL wildcard % can be used
 
@@ -34,44 +36,44 @@ from lxml import etree
 class GUIFrame(tk.Frame):
 
     # tkPatternUsage Mappings
-    pattern_usage = {'0': "Call Park",
-        '1': "Conference",
-        '2': "Directory Number",
-        '3': "Translation Pattern",
-        '4': "Call Pick Up Group",
-        '5': "Route Pattern",
-        '6': "Message Waiting",
-        '7': "Hunt Pilot",
-        '8': "Voice Mail Port",
-        '9': "Domain Routing",
-        '10': "IP Address Routing",
-        '11': "Device Template",
-        '12': "Directed Call Park",
-        '13': "Device Intercom",
-        '14': "Translation Intercom",
-        '15': "Translation Calling Party Number",
-        '16': "Mobility Handoff",
-        '17': "Mobility Enterprise Feature Access",
-        '18': "Mobility IVR",
-        '19': "Device Intercom Template",
-        '20': "Called Party Number Transformation",
-        '21': "Call Control Discovery Learned Pattern",
-        '22': "URI Routing",
-        '23': "ILS Learned Enterprise Number",
-        '24': "ILS Learned E164 Number",
-        '25': "ILS Learned Enterprise Numeric Pattern",
-        '26': "ILS Learned E164 Numeric Pattern",
-        '27': "Alternate Number",
-        '28': "ILS Learned URI",
-        '29': "ILS Learned PSTN Failover Rule",
-        '30': "ILS Imported E164 Number",
-        '104': "Centralized Conference Number",
-        '105': "Emergency Location ID Number"}
+    pattern_usage = {"0": "Call Park",
+        "1": "Conference",
+        "2": "Directory Number",
+        "3": "Translation Pattern",
+        "4": "Call Pick Up Group",
+        "5": "Route Pattern",
+        "6": "Message Waiting",
+        "7": "Hunt Pilot",
+        "8": "Voice Mail Port",
+        "9": "Domain Routing",
+        "10": "IP Address Routing",
+        "11": "Device Template",
+        "12": "Directed Call Park",
+        "13": "Device Intercom",
+        "14": "Translation Intercom",
+        "15": "Translation Calling Party Number",
+        "16": "Mobility Handoff",
+        "17": "Mobility Enterprise Feature Access",
+        "18": "Mobility IVR",
+        "19": "Device Intercom Template",
+        "20": "Called Party Number Transformation",
+        "21": "Call Control Discovery Learned Pattern",
+        "22": "URI Routing",
+        "23": "ILS Learned Enterprise Number",
+        "24": "ILS Learned E164 Number",
+        "25": "ILS Learned Enterprise Numeric Pattern",
+        "26": "ILS Learned E164 Numeric Pattern",
+        "27": "Alternate Number",
+        "28": "ILS Learned URI",
+        "29": "ILS Learned PSTN Failover Rule",
+        "30": "ILS Imported E164 Number",
+        "104": "Centralized Conference Number",
+        "105": "Emergency Location ID Number"}
 
     def __init__(self, parent):
         """Constructor checks parameters and initialise variables"""
         self.input_filename = None
-        self.axl_password = ''
+        self.axl_password = ""
         tk.Frame.__init__(self, parent)
         parent.geometry("320x480")
         self.pack(fill=tk.BOTH, expand=True)
@@ -131,21 +133,21 @@ class GUIFrame(tk.Frame):
                 axl_json_data = json.load(f)
                 for axl_json in axl_json_data:
                     try:
-                        if not axl_json['fqdn']:
+                        if not axl_json["fqdn"]:
                             tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
                         return
                     try:
-                        if not axl_json['username']:
+                        if not axl_json["username"]:
                             tk.messagebox.showerror(title="Error", message="Username must be specified.")
                             return
                     except KeyError:
                         tk.messagebox.showerror(title="Error", message="Username must be specified.")
                         return
                     try:
-                        if not axl_json['wsdl_file']:
+                        if not axl_json["wsdl_file"]:
                             tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                             return
                     except KeyError:
@@ -176,11 +178,11 @@ class GUIFrame(tk.Frame):
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
         session.verify = False
-        session.auth = HTTPBasicAuth(axl_json['username'], self.axl_password)
+        session.auth = HTTPBasicAuth(axl_json["username"], self.axl_password)
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json['wsdl_file'], transport=transport, plugins=[history])
+            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -192,20 +194,9 @@ class GUIFrame(tk.Frame):
             for row in self.sql_query(service=axl, sql_statement=sql_statement):
                 try:
                     # Handle None results
-                    if row['dnorpattern'] is None:
-                        n_dnorpattern = ''
-                    else:
-                        n_dnorpattern = row['dnorpattern']
-                    if row['description'] is None:
-                        n_description = ''
-                    else:
-                        n_description = row['description']
-                    if row['tkpatternusage'] is None:
-                        # Assume DN if unknown
-                        n_tkpatternusage = 2
-                    else:
-                        n_tkpatternusage = row['tkpatternusage']
-
+                    n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
+                    n_description = row["description"] if row["description"] else ""
+                    n_tkpatternusage = row["tkpatternusage"] if row["tkpatternusage"] else "2" # Assume DN if unknown
                     self.list_box.insert(tk.END, f'{n_dnorpattern} "{n_description}", '
                         f'{self.pattern_usage[n_tkpatternusage]}')
                     cntr += 1
@@ -229,7 +220,7 @@ class GUIFrame(tk.Frame):
             tk.messagebox.showerror(title="Error", message="Search pattern is blank.")
             return
         for range_char in search_string:
-            if range_char not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#', 'X', '%']:
+            if range_char not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#", "X", "%"]:
                 tk.messagebox.showerror(title="Error", message="Invalid characters in search pattern.")
                 return
 
@@ -237,9 +228,9 @@ class GUIFrame(tk.Frame):
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.input_filename = tk.filedialog.askopenfilename(initialdir='/', filetypes=(("JSON files",
+        self.input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
             "*.json"),("All files", "*.*")))
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show='*')
+        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
 
 if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)
