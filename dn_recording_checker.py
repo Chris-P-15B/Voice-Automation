@@ -163,10 +163,10 @@ class GUIFrame(tk.Frame):
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
                     # Handle None results
-                    d_name = row.get("name", "")
-                    d_description = row.get("description", "")
-                    n_dnorpattern = row.get("dnorpattern", "")
-                    n_description = row.get("ndescription", "")
+                    d_name = row["name"] if row["name"] else ""
+                    d_description = row["description"] if row["description"] else ""
+                    n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
+                    n_description = row["ndescription"] if row["ndescription"] else ""
                     self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
                     result_list.append(list(row.values()))
                     cntr += 1
@@ -187,10 +187,10 @@ class GUIFrame(tk.Frame):
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
                     # Handle None results
-                    d_name = row.get("name", "")
-                    d_description = row.get("description", "")
-                    n_dnorpattern = row.get("dnorpattern", "")
-                    n_description = row.get("ndescription", "")
+                    d_name = row["name"] if row["name"] else ""
+                    d_description = row["description"] if row["description"] else ""
+                    n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
+                    n_description = row["ndescription"] if row["ndescription"] else ""
                     self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
                     result_list.append(list(row.values()))
                     cntr += 1

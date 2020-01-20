@@ -291,7 +291,7 @@ class GUIFrame(tk.Frame):
             for row in self.sql_query(service=axl, sql_statement=sql_statement):
                 # Ignore entries not in the correct partition and update directory_numbers with numbers
                 # found to be in use
-                pname = row.get("name", "")
+                pname = row["name"] if row["name"] else ""
                 if pname.upper() == self.range_partition.upper():
                     for char_string in self.parse_regex(row["dnorpattern"], self.range_start, self.range_end):
                         raw_route_plan.append(char_string)
