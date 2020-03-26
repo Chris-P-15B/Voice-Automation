@@ -80,7 +80,7 @@ class GUIFrame(tk.Frame):
                                 " must be greater than the first.")
                             sys.exit()
                     except (TypeError, ValueError, KeyError):
-                        tk.messagebox.showerror(title="Error", message="Number range parameters incorrectly"
+                        tk.messagebox.showerror(title="Error", message="Number range parameters incorrect."
                             " formatted.")
                         sys.exit()
                     try:
@@ -156,7 +156,7 @@ class GUIFrame(tk.Frame):
     def parse_regex(self, pattern, range_start, range_end):
         """Parse CUCM regex pattern and return list of the digit strings the regex matches within the
          number range specified"""
-        is_slice = False
+        is_set = False
         is_range = False
         is_negate = False
         num_digits = 0
@@ -168,29 +168,29 @@ class GUIFrame(tk.Frame):
             digits.append([])
         for char in pattern:
             if char == "[":
-                is_slice = True
-            elif char == "^" and is_slice == True:
+                is_set = True
+            elif char == "^" and is_set == True:
                 is_negate = True
             elif char == "]":
-                is_slice = False
+                is_set = False
                 if is_negate == True:
-                    negate_slice = []
+                    negate_set = []
                     for range_char in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
                         if range_char not in digits[num_digits]:
-                            negate_slice.append(range_char)
-                    digits[num_digits] = negate_slice[:]
+                            negate_set.append(range_char)
+                    digits[num_digits] = negate_set[:]
                     is_negate = False
                 num_digits += 1
             elif char in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
                 if is_range == False:
                     digits[num_digits].append(char)
-                    if is_slice == False:
+                    if is_set == False:
                         num_digits += 1
                 else:
                     for range_char in range(int(digits[num_digits][-1]) + 1, int(char) + 1):
                         digits[num_digits].append(str(range_char))
                     is_range = False
-            elif char == "-" and is_slice == True:
+            elif char == "-" and is_set == True:
                 is_range = True
             elif char == "X":
                 digits[num_digits] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
