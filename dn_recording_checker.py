@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-# (c) 2018 - 2019, Chris Perkins
+# (c) 2018 - 2020, Chris Perkins
 # Licence: BSD 3-Clause
 
 # For a list of DNs in a CSV file, find phones (tkclass=1) & device profiles (tkclass=254) where built-in
 # bridge isn’t on or privacy isn’t off, automatic call recording isn't enabled, recording profile doesn't
-# match & recording media source isn't phone preferred. Optionally output to another CSV file
+# match, recording media source isn't phone preferred, or isn't associated to specified application user.
+# Optionally output to another CSV file
 
+# v1.3 - added checking application user device association, improved handling of multiple recording profiles
 # v1.2 - code tidying
 # v1.1 - fixes some edge cases
 # v1.0 - original release
@@ -15,9 +17,8 @@
 # To Do:
 # Improve the GUI
 
-import sys, json, csv
+import sys, json, csv, requests
 import tkinter as tk
-import requests
 from tkinter import ttk
 from tkinter import filedialog, simpledialog, messagebox
 from collections import OrderedDict
@@ -121,11 +122,20 @@ class GUIFrame(tk.Frame):
                         tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
                         return
                     try:
-                        if not axl_json["subquery"]:
-                            tk.messagebox.showerror(title="Error", message="Subquery must be specified.")
+                        if not axl_json["recording_profiles"]:
+                            tk.messagebox.showerror(title="Error", message="Recording profile(s) must be specified.")
+                            return
+                        else:
+                            axl_json["recording_profiles"] = [i.upper() for i in axl_json["recording_profiles"]]
+                    except KeyError:
+                        tk.messagebox.showerror(title="Error", message="Recording profile(s) must be specified.")
+                        return
+                    try:
+                        if not axl_json["application_user"]:
+                            tk.messagebox.showerror(title="Error", message="Application username must be specified.")
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Subquery must be specified.")
+                        tk.messagebox.showerror(title="Error", message="Application username must be specified.")
                         return
         except FileNotFoundError:
             messagebox.showerror(title="Error", message="Unable to open JSON file.")
@@ -148,18 +158,52 @@ class GUIFrame(tk.Frame):
             return
         axl = client.create_service(axl_binding_name, axl_address)
 
-        # For each DN read from CSV file
         cntr = 0
-        result_list = [["Device Name", "Device Description", "DN", "DN Description"]]
+        result_list = [["Device Name", "Device Description", "DN", "DN Description", "AppUser Association"]]
+        self.list_box.insert(tk.END, "Device Name, Device Description, DN, DN Description, AppUser Association\n")
+
+        # Grab list of phones & device profiles associated with the application user
+        sql_statement = f"SELECT device.name FROM applicationuserdevicemap INNER JOIN device ON applicationuserdevicemap.fkdevice=device.pkid " \
+            f"INNER JOIN applicationuser ON applicationuser.pkid=applicationuserdevicemap.fkapplicationuser WHERE applicationuser.name LIKE " \
+            f"'{axl_json['application_user']}'"
+        app_user_devices = []
+        try:
+            for row in self.sql_query(service=axl, sql_statement=sql_statement):
+                try:
+                    app_user_devices.append(row["name"])
+                except TypeError:
+                    continue
+        except TypeError:
+            pass
+        except Fault as thin_axl_error:
+            tk.messagebox.showerror(title="Error", message=thin_axl_error.message)
+            return
+
+        # Grab list of recording profile names & pkids, store pkids of profiles to match
+        sql_statement = "SELECT rp.pkid, rp.name FROM recordingprofile rp"
+        rp_pkids = []
+        try:
+            for row in self.sql_query(service=axl, sql_statement=sql_statement):
+                try:
+                    if row["name"].upper() in axl_json["recording_profiles"]:
+                        rp_pkids.append(row["pkid"])
+                except TypeError:
+                    continue
+        except TypeError:
+            pass
+        except Fault as thin_axl_error:
+            tk.messagebox.showerror(title="Error", message=thin_axl_error.message)
+            return
+
+        # For each DN read from CSV file
         for dn in dn_list:
-            # Check for phones (tkclass=1)
-            sql_statement = f"SELECT d.name, d.description, n.dnorpattern, n.description AS ndescription " \
-                f"FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid INNER JOIN numplan n " \
-                f"ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid " \
-                f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=1 " \
-                f"AND n.dnorpattern='{dn}') AND (d.tkstatus_builtinbridge!=1 OR dpd.tkstatus_callinfoprivate!=0 " \
-                f"OR {axl_json['subquery']} OR dnmap.fkrecordingprofile IS NULL OR dnmap.tkpreferredmediasource!=2 " \
-                f"OR rd.tkrecordingflag!=1) ORDER BY d.name"
+            # Grab phones & device profiles with an instance of the DN
+            sql_statement = f"SELECT d.name, d.description, n.dnorpattern, n.description AS ndescription, d.tkclass, " \
+                f"d.tkstatus_builtinbridge, dpd.tkstatus_callinfoprivate, dnmap.fkrecordingprofile, dnmap.tkpreferredmediasource, " \
+                f"rd.tkrecordingflag FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid " \
+                f"INNER JOIN numplan n ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid " \
+                f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=1 OR d.tkclass=254) " \
+                f"AND n.dnorpattern='{dn['dn']}' ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
                     try:
@@ -168,9 +212,35 @@ class GUIFrame(tk.Frame):
                         d_description = row["description"] if row["description"] else ""
                         n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
                         n_description = row["ndescription"] if row["ndescription"] else ""
-                        self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
-                        result_list.append(list(row.values()))
-                        cntr += 1
+                        d_tkclass = row["tkclass"] if row["tkclass"] else ""
+                        d_tkstatus_builtinbridge = row["tkstatus_builtinbridge"] if row["tkstatus_builtinbridge"] else ""
+                        dpd_tkstatus_callinfoprivate = row["tkstatus_callinfoprivate"] if row["tkstatus_callinfoprivate"] else ""
+                        dnmap_fkrecordingprofile = row["fkrecordingprofile"] if row["fkrecordingprofile"] else ""
+                        dnmap_tkpreferredmediasource = row["tkpreferredmediasource"] if row["tkpreferredmediasource"] else ""
+                        rd_tkrecordingflag = row["tkrecordingflag"] if row["tkrecordingflag"] else ""
+
+                        # Check phone or device profile is associated to application user
+                        if d_name in app_user_devices:
+                            user_associated = True
+                        else:
+                            user_associated = False
+                        # Check for missing recording configuration, phones (tkclass=1) + device profiles (tkclass=254)
+                        if d_tkclass == "1":
+                            if (d_tkstatus_builtinbridge != "1" or dpd_tkstatus_callinfoprivate != "0"
+                                or dnmap_fkrecordingprofile not in rp_pkids or dnmap_fkrecordingprofile == ""
+                                or dnmap_tkpreferredmediasource != "2" or rd_tkrecordingflag != "1" or not user_associated):
+                                row["nice"] = dn["nice"]
+                                self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}')
+                                result_list.append([d_name, d_description, n_dnorpattern, n_description, user_associated])
+                                cntr += 1
+                        elif d_tkclass == "254":
+                            if (dpd_tkstatus_callinfoprivate != "0" or dnmap_fkrecordingprofile not in rp_pkids
+                                or dnmap_fkrecordingprofile == "" or dnmap_tkpreferredmediasource != "2"
+                                or rd_tkrecordingflag != "1" or not user_associated):
+                                row["nice"] = dn["nice"]
+                                self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}')
+                                result_list.append([d_name, d_description, n_dnorpattern, n_description, user_associated])
+                                cntr += 1
                     except TypeError:
                         continue
             except TypeError:
@@ -179,34 +249,7 @@ class GUIFrame(tk.Frame):
                 tk.messagebox.showerror(title="Error", message=thin_axl_error.message)
                 return
 
-            # Check for device profiles (tkclass=254)
-            sql_statement = f"SELECT d.name, d.description, n.dnorpattern, n.description AS ndescription " \
-                f"FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid INNER JOIN numplan n " \
-                f"ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid " \
-                f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=254 " \
-                f"AND n.dnorpattern='{dn}') AND (dpd.tkstatus_callinfoprivate!=0 OR {axl_json['subquery']} " \
-                f"OR dnmap.fkrecordingprofile IS NULL OR dnmap.tkpreferredmediasource!=2 OR rd.tkrecordingflag!=1) " \
-                f"ORDER BY d.name"
-            try:
-                for row in self.sql_query(service=axl, sql_statement=sql_statement):
-                    try:
-                        # Handle None results
-                        d_name = row["name"] if row["name"] else ""
-                        d_description = row["description"] if row["description"] else ""
-                        n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
-                        n_description = row["ndescription"] if row["ndescription"] else ""
-                        self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}"')
-                        result_list.append(list(row.values()))
-                        cntr += 1
-                    except TypeError:
-                        continue
-            except TypeError:
-                pass
-            except Fault as thin_axl_error:
-                tk.messagebox.showerror(title="Error", message=thin_axl_error.message)
-                return
         self.results_count_text.set(f"Results Found: {str(cntr)}")
-
         # Output to CSV file if required
         try:
             if len(output_filename) != 0:
@@ -251,6 +294,6 @@ if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)
     # Initialise TKinter GUI objects
     root = tk.Tk()
-    root.title("DN Recording Checker v1.2")
+    root.title("DN Recording Checker v1.3")
     GUIFrame(root)
     root.mainloop()
