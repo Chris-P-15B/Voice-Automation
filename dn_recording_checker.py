@@ -203,7 +203,7 @@ class GUIFrame(tk.Frame):
                 f"rd.tkrecordingflag FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid " \
                 f"INNER JOIN numplan n ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid " \
                 f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=1 OR d.tkclass=254) " \
-                f"AND n.dnorpattern='{dn['dn']}' ORDER BY d.name"
+                f"AND n.dnorpattern='{dn}' ORDER BY d.name"
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
                     try:
@@ -229,7 +229,6 @@ class GUIFrame(tk.Frame):
                             if (d_tkstatus_builtinbridge != "1" or dpd_tkstatus_callinfoprivate != "0"
                                 or dnmap_fkrecordingprofile not in rp_pkids or dnmap_fkrecordingprofile == ""
                                 or dnmap_tkpreferredmediasource != "2" or rd_tkrecordingflag != "1" or not user_associated):
-                                row["nice"] = dn["nice"]
                                 self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}')
                                 result_list.append([d_name, d_description, n_dnorpattern, n_description, user_associated])
                                 cntr += 1
@@ -237,7 +236,6 @@ class GUIFrame(tk.Frame):
                             if (dpd_tkstatus_callinfoprivate != "0" or dnmap_fkrecordingprofile not in rp_pkids
                                 or dnmap_fkrecordingprofile == "" or dnmap_tkpreferredmediasource != "2"
                                 or rd_tkrecordingflag != "1" or not user_associated):
-                                row["nice"] = dn["nice"]
                                 self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}')
                                 result_list.append([d_name, d_description, n_dnorpattern, n_description, user_associated])
                                 cntr += 1
