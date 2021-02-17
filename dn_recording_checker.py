@@ -1,21 +1,24 @@
-#!/usr/bin/env python
-# (c) 2018 - 2020, Chris Perkins
-# Licence: BSD 3-Clause
+#!/usr/bin/env python3
 
-# For a list of DNs in a CSV file, find phones (tkclass=1) & device profiles (tkclass=254) where built-in
-# bridge isn’t on or privacy isn’t off, automatic call recording isn't enabled, recording profile doesn't
-# match, recording media source isn't phone preferred, or isn't associated to specified application user.
-# Optionally output to another CSV file
+"""
+(c) 2018 - 2020, Chris Perkins
+Licence: BSD 3-Clause
 
-# v1.3 - added checking application user device association, improved handling of multiple recording profiles
-# v1.2 - code tidying
-# v1.1 - fixes some edge cases
-# v1.0 - original release
+For a list of DNs in a CSV file, find phones (tkclass=1) & device profiles (tkclass=254) where built-in
+bridge isn’t on or privacy isn’t off, automatic call recording isn't enabled, recording profile doesn't
+match, recording media source isn't phone preferred, or isn't associated to specified application user.
+Optionally output to another CSV file
 
-# Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
+v1.3 - added checking application user device association, improved handling of multiple recording profiles
+v1.2 - code tidying
+v1.1 - fixes some edge cases
+v1.0 - original release
 
-# To Do:
-# Improve the GUI
+Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
+
+To Do:
+Improve the GUI
+"""
 
 import sys, json, csv, requests
 import tkinter as tk
@@ -36,7 +39,6 @@ from lxml import etree
 
 # GUI and main code
 class GUIFrame(tk.Frame):
-
     def __init__(self, parent):
         """Constructor checks parameters and initialise variables"""
         self.axl_input_filename = None
@@ -52,19 +54,29 @@ class GUIFrame(tk.Frame):
         file_menu.add_command(label="Exit", command=self.quit)
         menu_bar.add_cascade(label="File", menu=file_menu)
         parent.config(menu=menu_bar)
-        tk.Label(self, text="Output Filename:").place(relx=0.2, rely=0.0, height=22, width=200)
+        tk.Label(self, text="Output Filename:").place(
+            relx=0.2, rely=0.0, height=22, width=200
+        )
         self.output_csv_text = tk.StringVar()
-        tk.Entry(self, textvariable=self.output_csv_text).place(relx=0.2, rely=0.05, height=22, width=200)
-        tk.Button(self, text="Check Recording Config", command=self.check_recording).place(relx=0.265,
-            rely=0.12, height=22, width=160)
+        tk.Entry(self, textvariable=self.output_csv_text).place(
+            relx=0.2, rely=0.05, height=22, width=200
+        )
+        tk.Button(
+            self, text="Check Recording Config", command=self.check_recording
+        ).place(relx=0.265, rely=0.12, height=22, width=160)
         self.results_count_text = tk.StringVar()
         self.results_count_text.set("Results Found: ")
-        tk.Label(self, textvariable=self.results_count_text).place(relx=0.35, rely=0.18, height=22, width=110)
+        tk.Label(self, textvariable=self.results_count_text).place(
+            relx=0.35, rely=0.18, height=22, width=110
+        )
         list_box_frame = tk.Frame(self, bd=2, relief=tk.SUNKEN)
         list_box_scrollbar_y = tk.Scrollbar(list_box_frame)
         list_box_scrollbar_x = tk.Scrollbar(list_box_frame, orient=tk.HORIZONTAL)
-        self.list_box = tk.Listbox(list_box_frame, xscrollcommand=list_box_scrollbar_x.set,
-            yscrollcommand=list_box_scrollbar_y.set)
+        self.list_box = tk.Listbox(
+            list_box_frame,
+            xscrollcommand=list_box_scrollbar_x.set,
+            yscrollcommand=list_box_scrollbar_y.set,
+        )
         list_box_frame.place(relx=0.02, rely=0.22, relheight=0.75, relwidth=0.96)
         list_box_scrollbar_y.place(relx=0.94, rely=0.0, relheight=1.0, relwidth=0.06)
         list_box_scrollbar_x.place(relx=0.0, rely=0.94, relheight=0.06, relwidth=0.94)
@@ -74,17 +86,24 @@ class GUIFrame(tk.Frame):
 
     def element_list_to_ordered_dict(self, elements):
         """Convert list to OrderedDict"""
-        return [OrderedDict((element.tag, element.text) for element in row) for row in elements]
+        return [
+            OrderedDict((element.tag, element.text) for element in row)
+            for row in elements
+        ]
 
     def sql_query(self, service, sql_statement):
         """Execute SQL query via AXL and return results"""
         try:
             axl_resp = service.executeSQLQuery(sql=sql_statement)
             try:
-                return self.element_list_to_ordered_dict(serialize_object(axl_resp)["return"]["rows"])
+                return self.element_list_to_ordered_dict(
+                    serialize_object(axl_resp)["return"]["rows"]
+                )
             except KeyError:
                 # Single tuple response
-                return self.element_list_to_ordered_dict(serialize_object(axl_resp)["return"]["row"])
+                return self.element_list_to_ordered_dict(
+                    serialize_object(axl_resp)["return"]["row"]
+                )
             except TypeError:
                 # No SQL tuples
                 return serialize_object(axl_resp)["return"]
@@ -102,40 +121,66 @@ class GUIFrame(tk.Frame):
                 for axl_json in axl_json_data:
                     try:
                         if not axl_json["fqdn"]:
-                            tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="FQDN must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="FQDN must be specified."
+                        )
                         return
                     try:
                         if not axl_json["username"]:
-                            tk.messagebox.showerror(title="Error", message="Username must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="Username must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Username must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="Username must be specified."
+                        )
                         return
                     try:
                         if not axl_json["wsdl_file"]:
-                            tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="WSDL file must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="WSDL file must be specified."
+                        )
                         return
                     try:
                         if not axl_json["recording_profiles"]:
-                            tk.messagebox.showerror(title="Error", message="Recording profile(s) must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error",
+                                message="Recording profile(s) must be specified.",
+                            )
                             return
                         else:
-                            axl_json["recording_profiles"] = [i.upper() for i in axl_json["recording_profiles"]]
+                            axl_json["recording_profiles"] = [
+                                i.upper() for i in axl_json["recording_profiles"]
+                            ]
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Recording profile(s) must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error",
+                            message="Recording profile(s) must be specified.",
+                        )
                         return
                     try:
                         if not axl_json["application_user"]:
-                            tk.messagebox.showerror(title="Error", message="Application username must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error",
+                                message="Application username must be specified.",
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Application username must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error",
+                            message="Application username must be specified.",
+                        )
                         return
         except FileNotFoundError:
             messagebox.showerror(title="Error", message="Unable to open JSON file.")
@@ -152,20 +197,35 @@ class GUIFrame(tk.Frame):
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
+            client = Client(
+                wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history]
+            )
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
         axl = client.create_service(axl_binding_name, axl_address)
 
         cntr = 0
-        result_list = [["Device Name", "Device Description", "DN", "DN Description", "AppUser Association"]]
-        self.list_box.insert(tk.END, "Device Name, Device Description, DN, DN Description, AppUser Association\n")
+        result_list = [
+            [
+                "Device Name",
+                "Device Description",
+                "DN",
+                "DN Description",
+                "AppUser Association",
+            ]
+        ]
+        self.list_box.insert(
+            tk.END,
+            "Device Name, Device Description, DN, DN Description, AppUser Association\n",
+        )
 
         # Grab list of phones & device profiles associated with the application user
-        sql_statement = f"SELECT device.name FROM applicationuserdevicemap INNER JOIN device ON applicationuserdevicemap.fkdevice=device.pkid " \
-            f"INNER JOIN applicationuser ON applicationuser.pkid=applicationuserdevicemap.fkapplicationuser WHERE applicationuser.name LIKE " \
+        sql_statement = (
+            f"SELECT device.name FROM applicationuserdevicemap INNER JOIN device ON applicationuserdevicemap.fkdevice=device.pkid "
+            f"INNER JOIN applicationuser ON applicationuser.pkid=applicationuserdevicemap.fkapplicationuser WHERE applicationuser.name LIKE "
             f"'{axl_json['application_user']}'"
+        )
         app_user_devices = []
         try:
             for row in self.sql_query(service=axl, sql_statement=sql_statement):
@@ -198,12 +258,14 @@ class GUIFrame(tk.Frame):
         # For each DN read from CSV file
         for dn in dn_list:
             # Grab phones & device profiles with an instance of the DN
-            sql_statement = f"SELECT d.name, d.description, n.dnorpattern, n.description AS ndescription, d.tkclass, " \
-                f"d.tkstatus_builtinbridge, dpd.tkstatus_callinfoprivate, dnmap.fkrecordingprofile, dnmap.tkpreferredmediasource, " \
-                f"rd.tkrecordingflag FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid " \
-                f"INNER JOIN numplan n ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid " \
-                f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=1 OR d.tkclass=254) " \
+            sql_statement = (
+                f"SELECT d.name, d.description, n.dnorpattern, n.description AS ndescription, d.tkclass, "
+                f"d.tkstatus_builtinbridge, dpd.tkstatus_callinfoprivate, dnmap.fkrecordingprofile, dnmap.tkpreferredmediasource, "
+                f"rd.tkrecordingflag FROM device d INNER JOIN devicenumplanmap dnmap ON dnmap.fkdevice=d.pkid "
+                f"INNER JOIN numplan n ON dnmap.fknumplan=n.pkid INNER JOIN deviceprivacydynamic dpd ON dpd.fkdevice=d.pkid "
+                f"INNER JOIN recordingdynamic rd ON rd.fkdevicenumplanmap=dnmap.pkid WHERE (d.tkclass=1 OR d.tkclass=254) "
                 f"AND n.dnorpattern='{dn}' ORDER BY d.name"
+            )
             try:
                 for row in self.sql_query(service=axl, sql_statement=sql_statement):
                     try:
@@ -211,13 +273,33 @@ class GUIFrame(tk.Frame):
                         d_name = row["name"] if row["name"] else ""
                         d_description = row["description"] if row["description"] else ""
                         n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
-                        n_description = row["ndescription"] if row["ndescription"] else ""
+                        n_description = (
+                            row["ndescription"] if row["ndescription"] else ""
+                        )
                         d_tkclass = row["tkclass"] if row["tkclass"] else ""
-                        d_tkstatus_builtinbridge = row["tkstatus_builtinbridge"] if row["tkstatus_builtinbridge"] else ""
-                        dpd_tkstatus_callinfoprivate = row["tkstatus_callinfoprivate"] if row["tkstatus_callinfoprivate"] else ""
-                        dnmap_fkrecordingprofile = row["fkrecordingprofile"] if row["fkrecordingprofile"] else ""
-                        dnmap_tkpreferredmediasource = row["tkpreferredmediasource"] if row["tkpreferredmediasource"] else ""
-                        rd_tkrecordingflag = row["tkrecordingflag"] if row["tkrecordingflag"] else ""
+                        d_tkstatus_builtinbridge = (
+                            row["tkstatus_builtinbridge"]
+                            if row["tkstatus_builtinbridge"]
+                            else ""
+                        )
+                        dpd_tkstatus_callinfoprivate = (
+                            row["tkstatus_callinfoprivate"]
+                            if row["tkstatus_callinfoprivate"]
+                            else ""
+                        )
+                        dnmap_fkrecordingprofile = (
+                            row["fkrecordingprofile"]
+                            if row["fkrecordingprofile"]
+                            else ""
+                        )
+                        dnmap_tkpreferredmediasource = (
+                            row["tkpreferredmediasource"]
+                            if row["tkpreferredmediasource"]
+                            else ""
+                        )
+                        rd_tkrecordingflag = (
+                            row["tkrecordingflag"] if row["tkrecordingflag"] else ""
+                        )
 
                         # Check phone or device profile is associated to application user
                         if d_name in app_user_devices:
@@ -226,18 +308,51 @@ class GUIFrame(tk.Frame):
                             user_associated = False
                         # Check for missing recording configuration, phones (tkclass=1) + device profiles (tkclass=254)
                         if d_tkclass == "1":
-                            if (d_tkstatus_builtinbridge != "1" or dpd_tkstatus_callinfoprivate != "0"
-                                or dnmap_fkrecordingprofile not in rp_pkids or dnmap_fkrecordingprofile == ""
-                                or dnmap_tkpreferredmediasource != "2" or rd_tkrecordingflag != "1" or not user_associated):
-                                self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}')
-                                result_list.append([d_name, d_description, n_dnorpattern, n_description, user_associated])
+                            if (
+                                d_tkstatus_builtinbridge != "1"
+                                or dpd_tkstatus_callinfoprivate != "0"
+                                or dnmap_fkrecordingprofile not in rp_pkids
+                                or dnmap_fkrecordingprofile == ""
+                                or dnmap_tkpreferredmediasource != "2"
+                                or rd_tkrecordingflag != "1"
+                                or not user_associated
+                            ):
+                                self.list_box.insert(
+                                    tk.END,
+                                    f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}',
+                                )
+                                result_list.append(
+                                    [
+                                        d_name,
+                                        d_description,
+                                        n_dnorpattern,
+                                        n_description,
+                                        user_associated,
+                                    ]
+                                )
                                 cntr += 1
                         elif d_tkclass == "254":
-                            if (dpd_tkstatus_callinfoprivate != "0" or dnmap_fkrecordingprofile not in rp_pkids
-                                or dnmap_fkrecordingprofile == "" or dnmap_tkpreferredmediasource != "2"
-                                or rd_tkrecordingflag != "1" or not user_associated):
-                                self.list_box.insert(tk.END, f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}')
-                                result_list.append([d_name, d_description, n_dnorpattern, n_description, user_associated])
+                            if (
+                                dpd_tkstatus_callinfoprivate != "0"
+                                or dnmap_fkrecordingprofile not in rp_pkids
+                                or dnmap_fkrecordingprofile == ""
+                                or dnmap_tkpreferredmediasource != "2"
+                                or rd_tkrecordingflag != "1"
+                                or not user_associated
+                            ):
+                                self.list_box.insert(
+                                    tk.END,
+                                    f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}',
+                                )
+                                result_list.append(
+                                    [
+                                        d_name,
+                                        d_description,
+                                        n_dnorpattern,
+                                        n_description,
+                                        user_associated,
+                                    ]
+                                )
                                 cntr += 1
                     except TypeError:
                         continue
@@ -282,11 +397,16 @@ class GUIFrame(tk.Frame):
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.axl_input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
-            "*.json"),("All files", "*.*")))
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
-        self.csv_input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("CSV files",
-            "*.csv"),("All files", "*.*")))
+        self.axl_input_filename = tk.filedialog.askopenfilename(
+            initialdir="/", filetypes=(("JSON files", "*.json"), ("All files", "*.*"))
+        )
+        self.axl_password = tk.simpledialog.askstring(
+            "Input", "AXL Password?", show="*"
+        )
+        self.csv_input_filename = tk.filedialog.askopenfilename(
+            initialdir="/", filetypes=(("CSV files", "*.csv"), ("All files", "*.*"))
+        )
+
 
 if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)

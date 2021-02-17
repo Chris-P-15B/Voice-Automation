@@ -1,23 +1,26 @@
-#!/usr/bin/env python
-# (c) 2017 - 2019, Chris Perkins
-# Licence: BSD 3-Clause
+#!/usr/bin/env python3
 
-# Takes CUCM Route Plan Report exported as CSV or uses AXL, parses the regexs for the dial plan to find
-# unused numbers in a given direct dial range. Number range to match against is defined in JSON format in dialplan.json.
-# Won't parse dial plan entries with * or # as they're invalid for a direct dial range
+"""
+(c) 2017 - 2019, Chris Perkins
+Licence: BSD 3-Clause
 
-# v1.5 - code tidying
-# v1.4 - GUI adjustments & fixes some edge cases
-# v1.3 – added AXL support
-# v1.2 – bug fixes
-# v1.1 – added GUI
-# v1.0 – initial release with only CSV file support and CLI usage
+Takes CUCM Route Plan Report exported as CSV or uses AXL, parses the regexs for the dial plan to find
+unused numbers in a given direct dial range. Number range to match against is defined in JSON format in dialplan.json.
+Won't parse dial plan entries with * or # as they're invalid for a direct dial range
 
-# Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
+v1.5 - code tidying
+v1.4 - GUI adjustments & fixes some edge cases
+v1.3 – added AXL support
+v1.2 – bug fixes
+v1.1 – added GUI
+v1.0 – initial release with only CSV file support and CLI usage
 
-# To Do:
-# Improve the GUI
-# Add number classification, e.g. bronze, silver, gold & platinum
+Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
+
+To Do:
+Improve the GUI
+Add number classification, e.g. bronze, silver, gold & platinum
+"""
 
 import itertools, csv, sys, json
 import tkinter as tk
@@ -56,6 +59,7 @@ class DirectoryNumbers:
             self.is_used.append(False)
             self.classification.append(0)
 
+
 # GUI and main code
 class GUIFrame(tk.Frame):
     def __init__(self, parent):
@@ -71,34 +75,52 @@ class GUIFrame(tk.Frame):
                 self.json_data = json.load(f)
                 for range_data in self.json_data:
                     try:
-                        if len(range_data["range_start"]) != len(range_data["range_end"]):
-                            tk.messagebox.showerror(title="Error", message="The first and last numbers"
-                                " in range must be of equal length.")
+                        if len(range_data["range_start"]) != len(
+                            range_data["range_end"]
+                        ):
+                            tk.messagebox.showerror(
+                                title="Error",
+                                message="The first and last numbers"
+                                " in range must be of equal length.",
+                            )
                             sys.exit()
-                        elif int(range_data["range_start"]) >= int(range_data["range_end"]):
-                            tk.messagebox.showerror(title="Error", message="The last number in range"
-                                " must be greater than the first.")
+                        elif int(range_data["range_start"]) >= int(
+                            range_data["range_end"]
+                        ):
+                            tk.messagebox.showerror(
+                                title="Error",
+                                message="The last number in range"
+                                " must be greater than the first.",
+                            )
                             sys.exit()
                     except (TypeError, ValueError, KeyError):
-                        tk.messagebox.showerror(title="Error", message="Number range parameters incorrect."
-                            " formatted.")
+                        tk.messagebox.showerror(
+                            title="Error",
+                            message="Number range parameters incorrect." " formatted.",
+                        )
                         sys.exit()
                     try:
                         if not range_data["description"]:
-                            tk.messagebox.showerror(title="Error", message="Description must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="Description must be specified."
+                            )
                             sys.exit()
                         self.range_descriptions.append(range_data["description"])
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Description must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="Description must be specified."
+                        )
                         sys.exit()
                     try:
                         pass
                         # Remove pass & uncomment to disallow DNs not in a partition
-                        #if not range_data["partition"]:
+                        # if not range_data["partition"]:
                         #    tk.messagebox.showerror(title="Error", message="Partition must be specified.")
                         #    sys.exit()
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Partition must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="Partition must be specified."
+                        )
                         sys.exit()
         except FileNotFoundError:
             messagebox.showerror(title="Error", message="Unable to open JSON file.")
@@ -114,7 +136,9 @@ class GUIFrame(tk.Frame):
                 self.range_start = int(item["range_start"])
                 self.range_end = int(item["range_end"])
                 self.range_partition = item.get("partition", "")
-                self.directory_numbers = DirectoryNumbers(item["range_start"], item["range_end"])
+                self.directory_numbers = DirectoryNumbers(
+                    item["range_start"], item["range_end"]
+                )
                 break
 
         tk.Frame.__init__(self, parent)
@@ -129,20 +153,28 @@ class GUIFrame(tk.Frame):
         menu_bar.add_cascade(label="File", menu=file_menu)
         parent.config(menu=menu_bar)
         tk.Label(self, text="DN Range:").place(relx=0.4, rely=0.0, height=22, width=62)
-        self.range_combobox = ttk.Combobox(self, values=self.range_descriptions, state="readonly")
+        self.range_combobox = ttk.Combobox(
+            self, values=self.range_descriptions, state="readonly"
+        )
         self.range_combobox.current(0)
         self.range_combobox.bind("<<ComboboxSelected>>", self.combobox_update)
         self.range_combobox.place(relx=0.02, rely=0.042, relheight=0.06, relwidth=0.96)
-        tk.Button(self, text="Find Unused DNs", command=self.find_unused_dns).place(relx=0.35, rely=0.12,
-            height=22, width=100)
+        tk.Button(self, text="Find Unused DNs", command=self.find_unused_dns).place(
+            relx=0.35, rely=0.12, height=22, width=100
+        )
         self.unused_label_text = tk.StringVar()
         self.unused_label_text.set("Unused DNs: ")
-        tk.Label(self, textvariable=self.unused_label_text).place(relx=0.35, rely=0.18, height=22, width=110)
+        tk.Label(self, textvariable=self.unused_label_text).place(
+            relx=0.35, rely=0.18, height=22, width=110
+        )
         list_box_frame = tk.Frame(self, bd=2, relief=tk.SUNKEN)
         list_box_scrollbar_y = tk.Scrollbar(list_box_frame)
         list_box_scrollbar_x = tk.Scrollbar(list_box_frame, orient=tk.HORIZONTAL)
-        self.list_box = tk.Listbox(list_box_frame, xscrollcommand=list_box_scrollbar_x.set,
-            yscrollcommand=list_box_scrollbar_y.set)
+        self.list_box = tk.Listbox(
+            list_box_frame,
+            xscrollcommand=list_box_scrollbar_x.set,
+            yscrollcommand=list_box_scrollbar_y.set,
+        )
         list_box_frame.place(relx=0.02, rely=0.22, relheight=0.73, relwidth=0.96)
         list_box_scrollbar_y.place(relx=0.94, rely=0.0, relheight=1.0, relwidth=0.06)
         list_box_scrollbar_x.place(relx=0.0, rely=0.94, relheight=0.06, relwidth=0.94)
@@ -151,11 +183,13 @@ class GUIFrame(tk.Frame):
         list_box_scrollbar_x.config(command=self.list_box.xview)
         self.entries_label_text = tk.StringVar()
         self.entries_label_text.set("Dial Plan Entries Parsed: ")
-        tk.Label(self, textvariable=self.entries_label_text).place(relx=0.21, rely=0.95, height=22, width=220)
+        tk.Label(self, textvariable=self.entries_label_text).place(
+            relx=0.21, rely=0.95, height=22, width=220
+        )
 
     def parse_regex(self, pattern, range_start, range_end):
         """Parse CUCM regex pattern and return list of the digit strings the regex matches within the
-         number range specified"""
+        number range specified"""
         is_set = False
         is_range = False
         is_negate = False
@@ -175,7 +209,18 @@ class GUIFrame(tk.Frame):
                 is_set = False
                 if is_negate == True:
                     negate_set = []
-                    for range_char in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+                    for range_char in [
+                        "0",
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                    ]:
                         if range_char not in digits[num_digits]:
                             negate_set.append(range_char)
                     digits[num_digits] = negate_set[:]
@@ -187,7 +232,9 @@ class GUIFrame(tk.Frame):
                     if is_set == False:
                         num_digits += 1
                 else:
-                    for range_char in range(int(digits[num_digits][-1]) + 1, int(char) + 1):
+                    for range_char in range(
+                        int(digits[num_digits][-1]) + 1, int(char) + 1
+                    ):
                         digits[num_digits].append(str(range_char))
                     is_range = False
             elif char == "-" and is_set == True:
@@ -216,18 +263,24 @@ class GUIFrame(tk.Frame):
 
     def element_list_to_ordered_dict(self, elements):
         """Convert list to OrderedDict"""
-        return [OrderedDict((element.tag, element.text) for element in row) for row in elements]
-
+        return [
+            OrderedDict((element.tag, element.text) for element in row)
+            for row in elements
+        ]
 
     def sql_query(self, service, sql_statement):
         """Execute SQL query via AXL and return results"""
         try:
             axl_resp = service.executeSQLQuery(sql=sql_statement)
             try:
-                return self.element_list_to_ordered_dict(serialize_object(axl_resp)["return"]["rows"])
+                return self.element_list_to_ordered_dict(
+                    serialize_object(axl_resp)["return"]["rows"]
+                )
             except KeyError:
                 # Single tuple response
-                return self.element_list_to_ordered_dict(serialize_object(axl_resp)["return"]["row"])
+                return self.element_list_to_ordered_dict(
+                    serialize_object(axl_resp)["return"]["row"]
+                )
             except TypeError:
                 # No SQL tuples
                 return serialize_object(axl_resp)["return"]
@@ -244,24 +297,36 @@ class GUIFrame(tk.Frame):
                 for axl_json in axl_json_data:
                     try:
                         if not axl_json["fqdn"]:
-                            tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="FQDN must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="FQDN must be specified."
+                        )
                         return
                     try:
                         if not axl_json["username"]:
-                            tk.messagebox.showerror(title="Error", message="Username must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="Username must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Username must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="Username must be specified."
+                        )
                         return
                     try:
                         if not axl_json["wsdl_file"]:
-                            tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="WSDL file must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="WSDL file must be specified."
+                        )
                         return
         except FileNotFoundError:
             messagebox.showerror(title="Error", message="Unable to open JSON file.")
@@ -270,8 +335,10 @@ class GUIFrame(tk.Frame):
             messagebox.showerror(title="Error", message="Unable to parse JSON file.")
             return
 
-        sql_statement = "SELECT n.dnorpattern, p.name FROM numplan n LEFT JOIN routepartition p ON " \
+        sql_statement = (
+            "SELECT n.dnorpattern, p.name FROM numplan n LEFT JOIN routepartition p ON "
             "n.fkroutepartition=p.pkid"
+        )
         axl_binding_name = "{http://www.cisco.com/AXLAPIService/}AXLAPIBinding"
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
@@ -280,7 +347,9 @@ class GUIFrame(tk.Frame):
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
+            client = Client(
+                wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history]
+            )
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -293,7 +362,9 @@ class GUIFrame(tk.Frame):
                 # found to be in use
                 pname = row["name"] if row["name"] else ""
                 if pname.upper() == self.range_partition.upper():
-                    for char_string in self.parse_regex(row["dnorpattern"], self.range_start, self.range_end):
+                    for char_string in self.parse_regex(
+                        row["dnorpattern"], self.range_start, self.range_end
+                    ):
                         raw_route_plan.append(char_string)
                         try:
                             dn_index = self.directory_numbers.number.index(char_string)
@@ -307,12 +378,17 @@ class GUIFrame(tk.Frame):
             return
 
         # Update TKinter display objects with results
-        self.entries_label_text.set(f"Dial Plan Entries Parsed: {str(len(raw_route_plan))}")
+        self.entries_label_text.set(
+            f"Dial Plan Entries Parsed: {str(len(raw_route_plan))}"
+        )
         cntr = 0
         for num in range(0, len(self.directory_numbers.number)):
             if self.directory_numbers.is_used[num] == False:
                 cntr += 1
-                self.list_box.insert(tk.END, f"{self.directory_numbers.number[num]} / {self.range_partition}")
+                self.list_box.insert(
+                    tk.END,
+                    f"{self.directory_numbers.number[num]} / {self.range_partition}",
+                )
         self.unused_label_text.set(f"Unused DNs: {str(cntr)}")
 
     def read_csv_file(self):
@@ -334,17 +410,23 @@ class GUIFrame(tk.Frame):
                     elif column_header == "Partition":
                         column_index.append(index)
                 if len(column_index) != 2:
-                    tk.messagebox.showerror(title="Error", message="Unable to parse CSV file.")
+                    tk.messagebox.showerror(
+                        title="Error", message="Unable to parse CSV file."
+                    )
                     return
                 raw_route_plan = []
                 for row in reader:
                     # Ignore entries not in the correct partition and update directory_numbers with
                     # numbers found to be in use
                     if row[column_index[1]].upper() == self.range_partition.upper():
-                        for char_string in self.parse_regex(row[column_index[0]], self.range_start, self.range_end):
+                        for char_string in self.parse_regex(
+                            row[column_index[0]], self.range_start, self.range_end
+                        ):
                             raw_route_plan.append(char_string)
                             try:
-                                dn_index = self.directory_numbers.number.index(char_string)
+                                dn_index = self.directory_numbers.number.index(
+                                    char_string
+                                )
                                 self.directory_numbers.is_used[dn_index] = True
                             except (IndexError, ValueError):
                                 pass
@@ -353,12 +435,17 @@ class GUIFrame(tk.Frame):
             return
 
         # Update TKinter display objects
-        self.entries_label_text.set(f"Dial Plan Entries Parsed: {str(len(raw_route_plan))}")
+        self.entries_label_text.set(
+            f"Dial Plan Entries Parsed: {str(len(raw_route_plan))}"
+        )
         cntr = 0
         for num in range(0, len(self.directory_numbers.number)):
             if self.directory_numbers.is_used[num] == False:
                 cntr += 1
-                self.list_box.insert(tk.END, f"{self.directory_numbers.number[num]} / {self.range_partition}")
+                self.list_box.insert(
+                    tk.END,
+                    f"{self.directory_numbers.number[num]} / {self.range_partition}",
+                )
         self.unused_label_text.set(f"Unused DNs: {str(cntr)}")
 
     def find_unused_dns(self):
@@ -378,17 +465,21 @@ class GUIFrame(tk.Frame):
 
     def open_csv_file_dialog(self):
         """Dialogue to prompt for CSV file to open"""
-        self.input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("CSV files",
-            "*.csv"),("All files", "*.*")))
+        self.input_filename = tk.filedialog.askopenfilename(
+            initialdir="/", filetypes=(("CSV files", "*.csv"), ("All files", "*.*"))
+        )
         self.use_axl = False
         self.axl_password = ""
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
-            "*.json"),("All files", "*.*")))
+        self.input_filename = tk.filedialog.askopenfilename(
+            initialdir="/", filetypes=(("JSON files", "*.json"), ("All files", "*.*"))
+        )
         self.use_axl = True
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
+        self.axl_password = tk.simpledialog.askstring(
+            "Input", "AXL Password?", show="*"
+        )
 
     def combobox_update(self, event):
         """Populate range variables when Combobox item selected"""
@@ -402,8 +493,11 @@ class GUIFrame(tk.Frame):
                 self.range_start = int(item["range_start"])
                 self.range_end = int(item["range_end"])
                 self.range_partition = item["partition"]
-                self.directory_numbers = DirectoryNumbers(item["range_start"], item["range_end"])
+                self.directory_numbers = DirectoryNumbers(
+                    item["range_start"], item["range_end"]
+                )
                 break
+
 
 if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)

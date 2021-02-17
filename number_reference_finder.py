@@ -1,18 +1,21 @@
-#!/usr/bin/env python
-# (c) 2018 - 2019, Chris Perkins
-# Licence: BSD 3-Clause
+#!/usr/bin/env python3
 
-# Checks NumPlan for CFA, CFB, CFNA, CFNC, CFUR, AAR Destination Mask or Called Party Transformation
-# that reference a given number, SQL wildcard % can be used
+"""
+(c) 2018 - 2019, Chris Perkins
+Licence: BSD 3-Clause
 
-# v1.2 - code tidying
-# v1.1 - fixes some edge cases
-# v1.0 - original release
+Checks NumPlan for CFA, CFB, CFNA, CFNC, CFUR, AAR Destination Mask or Called Party Transformation
+that reference a given number, SQL wildcard % can be used
 
-# Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
+v1.2 - code tidying
+v1.1 - fixes some edge cases
+v1.0 - original release
 
-# To Do:
-# Improve the GUI
+Original AXL SQL query code courtesy of Jonathan Els - https://afterthenumber.com/2018/04/27/serializing-thin-axl-sql-query-responses-with-python-zeep/
+
+To Do:
+Improve the GUI
+"""
 
 import sys, json
 import tkinter as tk
@@ -36,7 +39,8 @@ from lxml import etree
 class GUIFrame(tk.Frame):
 
     # tkPatternUsage Mappings
-    pattern_usage = {"0": "Call Park",
+    pattern_usage = {
+        "0": "Call Park",
         "1": "Conference",
         "2": "Directory Number",
         "3": "Translation Pattern",
@@ -68,7 +72,8 @@ class GUIFrame(tk.Frame):
         "29": "ILS Learned PSTN Failover Rule",
         "30": "ILS Imported E164 Number",
         "104": "Centralized Conference Number",
-        "105": "Emergency Location ID Number"}
+        "105": "Emergency Location ID Number",
+    }
 
     def __init__(self, parent):
         """Constructor checks parameters and initialise variables"""
@@ -84,19 +89,29 @@ class GUIFrame(tk.Frame):
         file_menu.add_command(label="Exit", command=self.quit)
         menu_bar.add_cascade(label="File", menu=file_menu)
         parent.config(menu=menu_bar)
-        tk.Label(self, text="Number Pattern to Find:").place(relx=0.2, rely=0.0, height=22, width=200)
+        tk.Label(self, text="Number Pattern to Find:").place(
+            relx=0.2, rely=0.0, height=22, width=200
+        )
         self.search_pattern_text = tk.StringVar()
-        tk.Entry(self, textvariable=self.search_pattern_text).place(relx=0.2, rely=0.05, height=22, width=200)
-        tk.Button(self, text="Find References", command=self.find_references).place(relx=0.35, rely=0.12,
-            height=22, width=100)
+        tk.Entry(self, textvariable=self.search_pattern_text).place(
+            relx=0.2, rely=0.05, height=22, width=200
+        )
+        tk.Button(self, text="Find References", command=self.find_references).place(
+            relx=0.35, rely=0.12, height=22, width=100
+        )
         self.records_label_text = tk.StringVar()
         self.records_label_text.set("Dial Plan Records: ")
-        tk.Label(self, textvariable=self.records_label_text).place(relx=0.35, rely=0.18, height=22, width=110)
+        tk.Label(self, textvariable=self.records_label_text).place(
+            relx=0.35, rely=0.18, height=22, width=110
+        )
         list_box_frame = tk.Frame(self, bd=2, relief=tk.SUNKEN)
         list_box_scrollbar_y = tk.Scrollbar(list_box_frame)
         list_box_scrollbar_x = tk.Scrollbar(list_box_frame, orient=tk.HORIZONTAL)
-        self.list_box = tk.Listbox(list_box_frame, xscrollcommand=list_box_scrollbar_x.set,
-            yscrollcommand=list_box_scrollbar_y.set)
+        self.list_box = tk.Listbox(
+            list_box_frame,
+            xscrollcommand=list_box_scrollbar_x.set,
+            yscrollcommand=list_box_scrollbar_y.set,
+        )
         list_box_frame.place(relx=0.02, rely=0.22, relheight=0.75, relwidth=0.96)
         list_box_scrollbar_y.place(relx=0.94, rely=0.0, relheight=1.0, relwidth=0.06)
         list_box_scrollbar_x.place(relx=0.0, rely=0.94, relheight=0.06, relwidth=0.94)
@@ -106,17 +121,24 @@ class GUIFrame(tk.Frame):
 
     def element_list_to_ordered_dict(self, elements):
         """Convert list to OrderedDict"""
-        return [OrderedDict((element.tag, element.text) for element in row) for row in elements]
+        return [
+            OrderedDict((element.tag, element.text) for element in row)
+            for row in elements
+        ]
 
     def sql_query(self, service, sql_statement):
         """Execute SQL query via AXL and return results"""
         try:
             axl_resp = service.executeSQLQuery(sql=sql_statement)
             try:
-                return self.element_list_to_ordered_dict(serialize_object(axl_resp)["return"]["rows"])
+                return self.element_list_to_ordered_dict(
+                    serialize_object(axl_resp)["return"]["rows"]
+                )
             except KeyError:
                 # Single tuple response
-                return self.element_list_to_ordered_dict(serialize_object(axl_resp)["return"]["row"])
+                return self.element_list_to_ordered_dict(
+                    serialize_object(axl_resp)["return"]["row"]
+                )
             except TypeError:
                 # No SQL tuples
                 return serialize_object(axl_resp)["return"]
@@ -134,24 +156,36 @@ class GUIFrame(tk.Frame):
                 for axl_json in axl_json_data:
                     try:
                         if not axl_json["fqdn"]:
-                            tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="FQDN must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="FQDN must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="FQDN must be specified."
+                        )
                         return
                     try:
                         if not axl_json["username"]:
-                            tk.messagebox.showerror(title="Error", message="Username must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="Username must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="Username must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="Username must be specified."
+                        )
                         return
                     try:
                         if not axl_json["wsdl_file"]:
-                            tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
+                            tk.messagebox.showerror(
+                                title="Error", message="WSDL file must be specified."
+                            )
                             return
                     except KeyError:
-                        tk.messagebox.showerror(title="Error", message="WSDL file must be specified.")
+                        tk.messagebox.showerror(
+                            title="Error", message="WSDL file must be specified."
+                        )
                         return
         except FileNotFoundError:
             messagebox.showerror(title="Error", message="Unable to open JSON file.")
@@ -160,20 +194,22 @@ class GUIFrame(tk.Frame):
             messagebox.showerror(title="Error", message="Unable to parse JSON file.")
             return
 
-        sql_statement = f"SELECT n.DNOrPattern, n.Description, n.tkPatternUsage FROM NumPlan n LEFT JOIN " \
-            f"CallForwardDynamic cfd ON cfd.fkNumPlan=n.pkid WHERE n.CFAptDestination LIKE '" \
-            f"{search_string}' OR n.CFBDestination LIKE '" \
-            f"{search_string}' OR n.CFBIntDestination LIKE '" \
-            f"{search_string}' OR n.CFNADestination LIKE '" \
-            f"{search_string}' OR n.CFNAIntDestination LIKE '" \
-            f"{search_string}' OR n.PFFDestination LIKE '" \
-            f"{search_string}' OR n.PFFIntDestination LIKE '" \
-            f"{search_string}' OR n.CFURDestination LIKE '" \
-            f"{search_string}' OR n.CFURIntDestination LIKE '" \
-            f"{search_string}' OR n.AARDestinationMask LIKE '" \
-            f"{search_string}' OR n.CalledPartyTransformationMask LIKE '" \
-            f"{search_string}' OR cfd.CFADestination LIKE '" \
+        sql_statement = (
+            f"SELECT n.DNOrPattern, n.Description, n.tkPatternUsage FROM NumPlan n LEFT JOIN "
+            f"CallForwardDynamic cfd ON cfd.fkNumPlan=n.pkid WHERE n.CFAptDestination LIKE '"
+            f"{search_string}' OR n.CFBDestination LIKE '"
+            f"{search_string}' OR n.CFBIntDestination LIKE '"
+            f"{search_string}' OR n.CFNADestination LIKE '"
+            f"{search_string}' OR n.CFNAIntDestination LIKE '"
+            f"{search_string}' OR n.PFFDestination LIKE '"
+            f"{search_string}' OR n.PFFIntDestination LIKE '"
+            f"{search_string}' OR n.CFURDestination LIKE '"
+            f"{search_string}' OR n.CFURIntDestination LIKE '"
+            f"{search_string}' OR n.AARDestinationMask LIKE '"
+            f"{search_string}' OR n.CalledPartyTransformationMask LIKE '"
+            f"{search_string}' OR cfd.CFADestination LIKE '"
             f"{search_string}' ORDER BY n.DNOrPattern"
+        )
         axl_binding_name = "{http://www.cisco.com/AXLAPIService/}AXLAPIBinding"
         axl_address = f"https://{axl_json['fqdn']}:8443/axl/"
         session = Session()
@@ -182,7 +218,9 @@ class GUIFrame(tk.Frame):
         transport = Transport(cache=SqliteCache(), session=session, timeout=60)
         history = HistoryPlugin()
         try:
-            client = Client(wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history])
+            client = Client(
+                wsdl=axl_json["wsdl_file"], transport=transport, plugins=[history]
+            )
         except FileNotFoundError as e:
             tk.messagebox.showerror(title="Error", message=str(e))
             return
@@ -196,9 +234,14 @@ class GUIFrame(tk.Frame):
                     # Handle None results
                     n_dnorpattern = row["dnorpattern"] if row["dnorpattern"] else ""
                     n_description = row["description"] if row["description"] else ""
-                    n_tkpatternusage = row["tkpatternusage"] if row["tkpatternusage"] else "2" # Assume DN if unknown
-                    self.list_box.insert(tk.END, f'{n_dnorpattern} "{n_description}", '
-                        f'{self.pattern_usage[n_tkpatternusage]}')
+                    n_tkpatternusage = (
+                        row["tkpatternusage"] if row["tkpatternusage"] else "2"
+                    )  # Assume DN if unknown
+                    self.list_box.insert(
+                        tk.END,
+                        f'{n_dnorpattern} "{n_description}", '
+                        f"{self.pattern_usage[n_tkpatternusage]}",
+                    )
                     cntr += 1
                 except TypeError:
                     continue
@@ -220,17 +263,38 @@ class GUIFrame(tk.Frame):
             tk.messagebox.showerror(title="Error", message="Search pattern is blank.")
             return
         for range_char in search_string:
-            if range_char not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#", "X", "%"]:
-                tk.messagebox.showerror(title="Error", message="Invalid characters in search pattern.")
+            if range_char not in [
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "*",
+                "#",
+                "X",
+                "%",
+            ]:
+                tk.messagebox.showerror(
+                    title="Error", message="Invalid characters in search pattern."
+                )
                 return
 
         self.read_axl(search_string)
 
     def open_json_file_dialog(self):
         """Dialogue to prompt for JSON file to open and AXL password"""
-        self.input_filename = tk.filedialog.askopenfilename(initialdir="/", filetypes=(("JSON files",
-            "*.json"),("All files", "*.*")))
-        self.axl_password = tk.simpledialog.askstring("Input", "AXL Password?", show="*")
+        self.input_filename = tk.filedialog.askopenfilename(
+            initialdir="/", filetypes=(("JSON files", "*.json"), ("All files", "*.*"))
+        )
+        self.axl_password = tk.simpledialog.askstring(
+            "Input", "AXL Password?", show="*"
+        )
+
 
 if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)
