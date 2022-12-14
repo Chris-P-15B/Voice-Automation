@@ -4,11 +4,12 @@
 (c) 2022, Chris Perkins
 Licence: BSD 3-Clause
 
-Dynamic auditing of certificates installed on phones. Running against the publisher finds all the phones.
+Dynamic auditing of certificates installed on phones. Running against the publisher finds all the phones in a cluster.
 First pulls list of SEP devices from AXL API, then uses this list to retrieve IP addresses of registered phones via the RIS API.
-Then connects via HTTPS to each IP address & outputs the certificate issuer's organisation & the expiry date.
+Then connects via HTTPS to each IP address & outputs the certificate's subject & the expiry date.
 Application user requires Standard AXL API Access, Standard RealtimeAndTraceCollection & Standard Serviceability roles.
 
+v1.2 - switched to displaying the full certificate subject to provide more information
 v1.1 - added fallback from TLS v1.2 to v1.0 for older phones
 v1.0 - original release
 
@@ -193,9 +194,9 @@ def main():
                             )
                             diff = end_date - datetime.now()
                             # if cert.has_expired() or diff.days <= 7:
-                            #    print(f"FIX ME! {item['Name']} {item['IPAddress']['item'][0]['IP']}, certificate issuer {cert_byte_arr_decoded['O']}, expires {str(end_date)}.")
+                            #    print(f"FIX ME! {item['Name']} {item['IPAddress']['item'][0]['IP']}, certificate subject {cert_byte_arr_decoded}, expires {str(end_date)}.")
                             print(
-                                f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, certificate issuer {cert_byte_arr_decoded['O']}, expires {str(end_date)}."
+                                f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, certificate subject {cert_byte_arr_decoded}, expires {str(end_date)}."
                             )
                             c.shutdown()
                             s.close()
