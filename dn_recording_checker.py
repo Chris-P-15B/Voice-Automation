@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-(c) 2018 - 2020, Chris Perkins
+(c) 2018 - 2022, Chris Perkins
 Licence: BSD 3-Clause
 
 For a list of DNs in a CSV file, find phones (tkclass=1) & device profiles (tkclass=254) where built-in
@@ -9,6 +9,7 @@ bridge isn’t on or privacy isn’t off, automatic call recording isn't enabled
 match, recording media source isn't phone preferred, or isn't associated to specified application user.
 Optionally output to another CSV file
 
+v1.4 - added describing the issues found
 v1.3 - added checking application user device association, improved handling of multiple recording profiles
 v1.2 - code tidying
 v1.1 - fixes some edge cases
@@ -213,11 +214,12 @@ class GUIFrame(tk.Frame):
                 "DN",
                 "DN Description",
                 "AppUser Association",
+                "Comments",
             ]
         ]
         self.list_box.insert(
             tk.END,
-            "Device Name, Device Description, DN, DN Description, AppUser Association\n",
+            "Device Name, Device Description, DN, DN Description, AppUser Association, Comments\n",
         )
 
         # Grab list of phones & device profiles associated with the application user
@@ -301,6 +303,7 @@ class GUIFrame(tk.Frame):
                             row["tkrecordingflag"] if row["tkrecordingflag"] else ""
                         )
 
+                        comments = ""
                         # Check phone or device profile is associated to application user
                         if d_name in app_user_devices:
                             user_associated = True
@@ -317,9 +320,27 @@ class GUIFrame(tk.Frame):
                                 or rd_tkrecordingflag != "1"
                                 or not user_associated
                             ):
+                                # Describe the missing config
+                                if d_tkstatus_builtinbridge != "1":
+                                    comments += "built-in bridge incorrect, "
+                                if dpd_tkstatus_callinfoprivate != "0":
+                                    comments += "privacy incorrect, "
+                                if (
+                                    dnmap_fkrecordingprofile not in rp_pkids
+                                    or dnmap_fkrecordingprofile == ""
+                                ):
+                                    comments += "recording profile incorrect, "
+                                if dnmap_tkpreferredmediasource != "2":
+                                    comments += "media source not phone, "
+                                if rd_tkrecordingflag != "1":
+                                    comments += "call recording not automatic, "
+                                if not user_associated:
+                                    comments += "no application user association, "
+                                comments = comments.strip(", ")
+
                                 self.list_box.insert(
                                     tk.END,
-                                    f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}',
+                                    f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}, {comments}',
                                 )
                                 result_list.append(
                                     [
@@ -328,6 +349,7 @@ class GUIFrame(tk.Frame):
                                         n_dnorpattern,
                                         n_description,
                                         user_associated,
+                                        comments,
                                     ]
                                 )
                                 cntr += 1
@@ -340,9 +362,25 @@ class GUIFrame(tk.Frame):
                                 or rd_tkrecordingflag != "1"
                                 or not user_associated
                             ):
+                                # Describe the missing config
+                                if dpd_tkstatus_callinfoprivate != "0":
+                                    comments += "privacy incorrect, "
+                                if (
+                                    dnmap_fkrecordingprofile not in rp_pkids
+                                    or dnmap_fkrecordingprofile == ""
+                                ):
+                                    comments += "recording profile incorrect, "
+                                if dnmap_tkpreferredmediasource != "2":
+                                    comments += "media source not phone, "
+                                if rd_tkrecordingflag != "1":
+                                    comments += "call recording not automatic, "
+                                if not user_associated:
+                                    comments += "no application user association, "
+                                comments = comments.strip(", ")
+
                                 self.list_box.insert(
                                     tk.END,
-                                    f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}',
+                                    f'{d_name} "{d_description}", {n_dnorpattern} "{n_description}", {user_associated}, {comments}',
                                 )
                                 result_list.append(
                                     [
@@ -351,6 +389,7 @@ class GUIFrame(tk.Frame):
                                         n_dnorpattern,
                                         n_description,
                                         user_associated,
+                                        comments,
                                     ]
                                 )
                                 cntr += 1
@@ -412,6 +451,6 @@ if __name__ == "__main__":
     disable_warnings(InsecureRequestWarning)
     # Initialise TKinter GUI objects
     root = tk.Tk()
-    root.title("DN Recording Checker v1.3")
+    root.title("DN Recording Checker v1.4")
     GUIFrame(root)
     root.mainloop()
