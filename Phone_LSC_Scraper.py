@@ -35,7 +35,7 @@ from requests.auth import HTTPBasicAuth
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from lxml import etree
-from OpenSSL.SSL import Connection, Context, SSLv3_METHOD, TLSv1_METHOD, TLSv1_2_METHOD
+from OpenSSL.SSL import Connection, Context, SSLv3_METHOD, TLSv1_METHOD
 from datetime import datetime, time
 from time import sleep
 from OpenSSL.crypto import X509
@@ -166,12 +166,11 @@ def main():
                 # If the node has returned CmDevices
                 for item in CmNode.CmDevices.item:
                     try:
+                        # Older phones don't support TLS 1.2
                         try:
-                            ssl_connection_setting = Context(TLSv1_2_METHOD)
+                            ssl_connection_setting = Context(SSLv3_METHOD)
                         except ValueError:
-                            ssl_connection_setting = Context(
-                                TLSv1_METHOD
-                            )  # 7941 or 7961 don't support TLS 1.2
+                            ssl_connection_setting = Context(TLSv1_METHOD)
                         ssl_connection_setting.set_timeout(1)
                         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             s.connect((item["IPAddress"]["item"][0]["IP"], 443))
