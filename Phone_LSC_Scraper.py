@@ -35,11 +35,13 @@ from requests.auth import HTTPBasicAuth
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from lxml import etree
-from OpenSSL.SSL import Connection, Context, SSLv3_METHOD, TLSv1_METHOD
+from OpenSSL.SSL import Connection, Context, SSLv23_METHOD, TLSv1_METHOD, TLSv1_2_METHOD
 from datetime import datetime, time
 from time import sleep
 from OpenSSL.crypto import X509
 from getpass import getpass
+
+TLS_METHODS = (TLSv1_2_METHOD, TLSv1_METHOD, SSLv23_METHOD)
 
 
 def show_history(history):
@@ -165,54 +167,68 @@ def main():
             if len(CmNode.CmDevices.item) > 0:
                 # If the node has returned CmDevices
                 for item in CmNode.CmDevices.item:
-                    try:
-                        # Older phones don't support TLS 1.2
+                    # Older phones don't support TLS 1.2
+                    for method in TLS_METHODS:
                         try:
-                            ssl_connection_setting = Context(SSLv3_METHOD)
-                        except ValueError:
-                            ssl_connection_setting = Context(TLSv1_METHOD)
-                        ssl_connection_setting.set_timeout(1)
-                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                            s.connect((item["IPAddress"]["item"][0]["IP"], 443))
-                            c = Connection(ssl_connection_setting, s)
-                            c.set_tlsext_host_name(
-                                str.encode(item["IPAddress"]["item"][0]["IP"])
-                            )
-                            c.set_connect_state()
-                            c.do_handshake()
-                            cert = c.get_peer_certificate()
-                            subject_list = cert.get_subject().get_components()
-                            cert_byte_arr_decoded = {}
-                            for thing in subject_list:
-                                cert_byte_arr_decoded.update(
-                                    {thing[0].decode("utf-8"): thing[1].decode("utf-8")}
+                            try:
+                                ssl_connection_setting = Context(method)
+                            except ValueError:
+                                continue
+                            ssl_connection_setting.set_timeout(1)
+                            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                                s.connect((item["IPAddress"]["item"][0]["IP"], 443))
+                                c = Connection(ssl_connection_setting, s)
+                                c.set_tlsext_host_name(
+                                    str.encode(item["IPAddress"]["item"][0]["IP"])
                                 )
-                            end_date = datetime.strptime(
-                                str(cert.get_notAfter().decode("utf-8")),
-                                "%Y%m%d%H%M%SZ",
-                            )
-                            diff = end_date - datetime.now()
-                            # if cert.has_expired() or diff.days <= 7:
-                            #    print(f"FIX ME! {item['Name']} {item['IPAddress']['item'][0]['IP']}, certificate subject {cert_byte_arr_decoded}, expires {str(end_date)}.")
+                                c.set_connect_state()
+                                c.do_handshake()
+                                cert = c.get_peer_certificate()
+                                subject_list = cert.get_subject().get_components()
+                                cert_byte_arr_decoded = {}
+                                for thing in subject_list:
+                                    cert_byte_arr_decoded.update(
+                                        {
+                                            thing[0]
+                                            .decode("utf-8"): thing[1]
+                                            .decode("utf-8")
+                                        }
+                                    )
+                                end_date = datetime.strptime(
+                                    str(cert.get_notAfter().decode("utf-8")),
+                                    "%Y%m%d%H%M%SZ",
+                                )
+                                diff = end_date - datetime.now()
+                                # if cert.has_expired() or diff.days <= 7:
+                                #    print(f"FIX ME! {item['Name']} {item['IPAddress']['item'][0]['IP']}, certificate subject {cert_byte_arr_decoded}, expires {str(end_date)}.")
+                                print(
+                                    f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, certificate subject {cert_byte_arr_decoded}, expires {str(end_date)}."
+                                )
+                                c.shutdown()
+                                s.close()
+                                cntr_success += 1
+                                break
+                        except (
+                            TimeoutError,
+                            ConnectionRefusedError,
+                            socket.timeout,
+                            urllib3.exceptions.ConnectTimeoutError,
+                            urllib3.exceptions.MaxRetryError,
+                            requests.exceptions.ConnectTimeout,
+                        ):
                             print(
-                                f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, certificate subject {cert_byte_arr_decoded}, expires {str(end_date)}."
+                                f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, unable to connect."
                             )
-                            c.shutdown()
-                            s.close()
-                            cntr_success += 1
-                    except (
-                        TimeoutError,
-                        ConnectionRefusedError,
-                        socket.timeout,
-                        urllib3.exceptions.ConnectTimeoutError,
-                        urllib3.exceptions.MaxRetryError,
-                        requests.exceptions.ConnectTimeout,
-                        OpenSSL.SSL.Error,
-                    ):
+                            cntr_fail += 1
+                            break
+                        except OpenSSL.SSL.Error:
+                            continue
+                    else:
                         print(
                             f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, unable to connect."
                         )
                         cntr_fail += 1
+
         # Wait to avoid throttling
         sleep(0.02)
 
