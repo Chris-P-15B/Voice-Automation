@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-(c) 2018 - 2022, Chris Perkins
+Copyright (c) 2018 - 2022, Chris Perkins
 Licence: BSD 3-Clause
 
 For a list of DNs in a CSV file, find phones (tkclass=1) & device profiles (tkclass=254) where built-in

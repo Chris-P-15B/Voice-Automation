@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-(c) 2019, Chris Perkins
+Copyright (c) 2019, Chris Perkins
 Licence: BSD 3-Clause
 
 Finds & fixes primary DNs in specified range(s) with an External Phone Number Masks that doesn't

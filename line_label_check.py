@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 """
-(c) 2019, Chris Perkins
+Copyright (c) 2019, Chris Perkins
 Licence: BSD 3-Clause
 
-Finds & fixes Line Text Label's not in AB's current standard of Initial Last Name-Extension
+Finds & fixes Line Text Labels not in the standard of Initial Last Name-Extension
 
 v1.3 - code tidying
 v1.2 - fixed CSV output to UTF-8

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-(c) 2018 - 2019, Chris Perkins
+Copyright (c) 2018 - 2019, Chris Perkins
 Licence: BSD 3-Clause
 
 Checks NumPlan for CFA, CFB, CFNA, CFNC, CFUR, AAR Destination Mask or Called Party Transformation

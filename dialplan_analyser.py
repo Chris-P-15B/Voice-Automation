@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-(c) 2017 - 2019, Chris Perkins
+Copyright (c) 2017 - 2019, Chris Perkins
 Licence: BSD 3-Clause
 
 Takes CUCM Route Plan Report exported as CSV or uses AXL, parses the regexs for the dial plan to find

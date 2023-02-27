@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-(c) 2022, Chris Perkins
+Copyright (c) 2022, Chris Perkins
 Licence: BSD 3-Clause
 
 Dynamic auditing of certificates installed on phones. Running against the publisher finds all the phones in a cluster.
