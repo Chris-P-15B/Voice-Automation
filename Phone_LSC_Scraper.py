@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Copyright (c) 2022, Chris Perkins
+Copyright (c) 2022 - 2023, Chris Perkins
 Licence: BSD 3-Clause
 
 Dynamic auditing of certificates installed on phones. Running against the publisher finds all the phones in a cluster.
@@ -9,6 +9,7 @@ First pulls list of SEP devices from AXL API, then uses this list to retrieve IP
 Then connects via HTTPS to each IP address & outputs the certificate's issuer, subject & the expiry date.
 Application user requires Standard AXL API Access, Standard RealtimeAndTraceCollection & Standard Serviceability roles.
 
+v1.3 - implemented proper rate limited of API requests
 v1.2 - switched to displaying the full certificate issuer & subject to provide more information
 v1.1 - added fallback from TLS v1.2 to v1.0 for older phones
 v1.0 - original release
@@ -25,6 +26,7 @@ import urllib3
 import socket
 import json
 import OpenSSL
+import time
 from zeep import Client
 from zeep.cache import SqliteCache
 from zeep.transports import Transport
@@ -42,6 +44,7 @@ from OpenSSL.crypto import X509
 from getpass import getpass
 
 TLS_METHODS = (TLSv1_2_METHOD, TLSv1_METHOD, SSLv23_METHOD)
+MAX_API_CALLS_A_MINUTE = 15
 
 
 def show_history(history):
@@ -140,7 +143,11 @@ def main():
     # Run SelectCmDeviceExt on each Phone
     cntr_success = 0
     cntr_fail = 0
+    cntr_iterations = 0
+    timer = 0.0
     for phone in items:
+        last_time = time.perf_counter()
+        cntr_iterations += 1
         CmSelectionCriteria = {
             "MaxReturnedDevices": "1",
             "DeviceClass": "Phone",
@@ -239,9 +246,13 @@ def main():
                             f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, unable to connect."
                         )
                         cntr_fail += 1
-
-        # Wait to avoid throttling
-        sleep(0.02)
+        timer += time.perf_counter() - last_time
+        if cntr_iterations >= MAX_API_CALLS_A_MINUTE and timer < 60:
+            wait_time = 60.0 - timer
+            # print(f"{cntr_iterations} iterations in {timer}s, waiting {wait_time}s")
+            time.sleep(wait_time)
+            cntr_iterations = 0
+            timer = 0.0
 
     # Summarise
     print(
