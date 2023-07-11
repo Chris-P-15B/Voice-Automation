@@ -38,7 +38,7 @@ from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from lxml import etree
 from OpenSSL.SSL import Connection, Context, SSLv23_METHOD, TLSv1_METHOD, TLSv1_2_METHOD
-from datetime import datetime, time
+from datetime import datetime
 from time import sleep
 from OpenSSL.crypto import X509
 from getpass import getpass
@@ -253,6 +253,10 @@ def main():
             time.sleep(wait_time)
             cntr_iterations = 0
             timer = 0.0
+        elif timer > 60:
+            cntr_iterations = 0
+            timer = 0.0
+            time.sleep(1.0)
 
     # Summarise
     print(
