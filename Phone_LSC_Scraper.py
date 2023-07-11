@@ -9,7 +9,7 @@ First pulls list of SEP devices from AXL API, then uses this list to retrieve IP
 Then connects via HTTPS to each IP address & outputs the certificate's issuer, subject & the expiry date.
 Application user requires Standard AXL API Access, Standard RealtimeAndTraceCollection & Standard Serviceability roles.
 
-v1.3 - implemented proper rate limited of API requests
+v1.3 - implemented proper rate limiting of API requests
 v1.2 - switched to displaying the full certificate issuer & subject to provide more information
 v1.1 - added fallback from TLS v1.2 to v1.0 for older phones
 v1.0 - original release
@@ -246,6 +246,8 @@ def main():
                             f"{item['Name']}, {item['IPAddress']['item'][0]['IP']}, unable to connect."
                         )
                         cntr_fail += 1
+
+        # Rate limiting to MAX_API_CALLS_A_MINUTE in 60s
         timer += time.perf_counter() - last_time
         if cntr_iterations >= MAX_API_CALLS_A_MINUTE and timer < 60:
             wait_time = 60.0 - timer
