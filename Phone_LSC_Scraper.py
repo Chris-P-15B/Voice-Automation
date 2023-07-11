@@ -255,9 +255,8 @@ def main():
             time.sleep(wait_time)
             cntr_iterations = 0
             timer = 0.0
-        elif timer >= 60:
-            avg_time = timer / cntr_iterations
-            timer.sleep(avg_time)
+        elif timer > 60:
+            timer.sleep(1.0)
             cntr_iterations = 0
             timer = 0.0
 
