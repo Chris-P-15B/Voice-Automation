@@ -250,15 +250,16 @@ def main():
         # Rate limiting to MAX_API_CALLS_A_MINUTE in 60s
         timer += time.perf_counter() - last_time
         if cntr_iterations >= MAX_API_CALLS_A_MINUTE and timer < 60:
-            wait_time = 60.0 - timer
+            wait_time = 61.0 - timer
             # print(f"{cntr_iterations} iterations in {timer}s, waiting {wait_time}s")
             time.sleep(wait_time)
             cntr_iterations = 0
             timer = 0.0
-        elif timer > 60:
+        elif timer >= 60:
+            avg_time = timer / cntr_iterations
+            timer.sleep(avg_time)
             cntr_iterations = 0
             timer = 0.0
-            time.sleep(1.0)
 
     # Summarise
     print(
